@@ -1,0 +1,153 @@
+ * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    background:#000;
+    display:flex; flex-direction:column;
+    align-items:center; justify-content:center;
+    min-height:100vh;
+    font-family:'Courier New', monospace;
+    overflow:hidden;
+    user-select:none;
+  }
+  #gameWrapper {
+    position:relative;
+    width:900px; height:600px;
+    border:2px solid #2a2a2a;
+    box-shadow:0 0 40px #000;
+  }
+  #gameCanvas { display:block; }
+
+  /* HUD OVERLAY */
+  #hud {
+    position:absolute; top:0; left:0; right:0;
+    height:44px; background:rgba(3,3,3,0.95);
+    border-bottom:2px solid #4A7A30;
+    display:flex; align-items:center;
+    padding:0 12px; gap:16px; z-index:10;
+  }
+  #hudTitle {
+    color:#FFD700; font-weight:bold; font-size:15px;
+    letter-spacing:2px; text-shadow:0 0 8px #AA8800;
+    white-space:nowrap;
+  }
+  #hudTimer {
+    background:#150A00; border:1.5px solid #FF6B00;
+    border-radius:6px; padding:3px 12px;
+    color:#FF9A3C; font-weight:bold; font-size:12px;
+    margin:0 auto;
+  }
+  #hudTimer.urgent { border-color:#FF2200; color:#FF4422; animation:pulse 1s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.6} }
+  #hudArea { color:#666; font-size:11px; white-space:nowrap; }
+
+  /* BOTTOM HUD */
+  #bottomHud {
+    position:absolute; bottom:0; left:0; right:0;
+    height:42px; background:rgba(3,3,3,0.95);
+    border-top:2px solid #2A5A20;
+    display:flex; align-items:center;
+    padding:0 12px; gap:8px; z-index:10;
+  }
+  #invLabel { color:#555; font-size:10px; white-space:nowrap; }
+  .invSlot {
+    width:58px; height:30px;
+    border-radius:5px; border:1px solid #333;
+    background:#111; display:flex; align-items:center;
+    justify-content:center; font-size:9px;
+    color:#666; cursor:pointer; transition:all .15s;
+    position:relative; overflow:hidden;
+  }
+  .invSlot.has { border-color:#555; color:#CCC; background:#1A1A1A; }
+  .invSlot.has:hover { border-color:#FFD700; color:#FFD700; }
+  .invSlot img { width:22px; height:22px; object-fit:contain; }
+  #controls { margin-left:auto; color:#666; font-size:10px; display:flex; gap:12px; }
+  .ctrl span { color:#AAA; }
+
+  /* MINIMAP */
+  #minimap {
+    position:absolute; top:52px; right:10px;
+    width:130px; height:130px;
+    background:rgba(8,8,8,0.95);
+    border:1.5px solid #333; border-radius:6px;
+    z-index:10; overflow:hidden;
+  }
+  #minimapCanvas { display:block; }
+  #minimapLabel {
+    position:absolute; top:2px; left:0; right:0;
+    text-align:center; color:#555; font-size:8px; letter-spacing:1px;
+  }
+
+  /* DIALOG BOX */
+  #dialogBox {
+    position:absolute; bottom:50px; left:10px; right:10px;
+    background:rgba(10,10,10,0.97);
+    border:2px solid #4A7A30; border-radius:10px;
+    padding:12px 14px 10px;
+    z-index:20; display:none;
+    box-shadow:0 0 20px rgba(74,122,48,0.3);
+  }
+  #dialogName {
+    background:#4A7A30; color:#fff;
+    font-weight:bold; font-size:11px;
+    padding:3px 10px; border-radius:5px;
+    display:inline-flex; align-items:center; gap:6px;
+    margin-bottom:7px;
+  }
+  #dialogName img { width:18px; height:18px; object-fit:contain; }
+  #dialogText {
+    color:#E8E8E8; font-size:12px; line-height:1.6;
+    font-style:italic; margin-bottom:9px; min-height:30px;
+  }
+  #dialogChoices { display:flex; gap:8px; flex-wrap:wrap; }
+  .dialogChoice {
+    background:#1A3A1A; border:1.5px solid #4A7A30;
+    color:#AAFFAA; font-size:11px; font-weight:bold;
+    padding:5px 12px; border-radius:5px; cursor:pointer;
+    transition:all .15s; font-family:inherit;
+  }
+  .dialogChoice:hover { background:#2A5A2A; color:#fff; }
+  .dialogChoice.neutral {
+    background:#1A1A1A; border-color:#333; color:#666;
+  }
+  .dialogChoice.neutral:hover { border-color:#555; color:#AAA; }
+
+  /* NOTIFICATION */
+  #notif {
+    position:absolute; bottom:60px; left:10px;
+    background:rgba(13,26,13,0.97);
+    border:2px solid #4A7A30; border-radius:8px;
+    padding:6px 12px; z-index:30;
+    display:none; align-items:center; gap:8px;
+    box-shadow:0 0 15px rgba(74,122,48,0.4);
+  }
+  #notif img { width:26px; height:26px; object-fit:contain; }
+  #notifText { font-size:11px; color:#AAFFAA; font-weight:bold; }
+  #notifSub { font-size:10px; color:#666; }
+
+  /* PAUSE / GAMEOVER / WIN */
+  #overlay {
+    position:absolute; inset:0;
+    background:rgba(0,0,0,0.88);
+    z-index:50; display:none;
+    flex-direction:column; align-items:center; justify-content:center;
+    gap:14px;
+  }
+  #overlayTitle {
+    font-size:28px; font-weight:bold; color:#FFD700;
+    text-shadow:0 0 20px #AA8800; letter-spacing:3px;
+  }
+  #overlaySubtitle { font-size:13px; color:#888; }
+  .overlayBtn {
+    background:#1A3A1A; border:2px solid #4A7A30;
+    color:#AAFFAA; font-size:13px; font-weight:bold;
+    padding:10px 28px; border-radius:8px; cursor:pointer;
+    transition:all .2s; font-family:inherit; letter-spacing:1px;
+  }
+  .overlayBtn:hover { background:#2A5A2A; color:#fff; transform:scale(1.03); }
+  .overlayBtn.red { background:#3A1A1A; border-color:#7A2A1A; color:#FFAAAA; }
+  .overlayBtn.red:hover { background:#5A2A2A; }
+
+  /* INTERACT HINT */
+  .interactHint {
+    position:absolute; pointer-events:none; z-index:8;
+    display:none;
+  }
