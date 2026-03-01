@@ -1,35 +1,17 @@
-// ═══════════════════════════════════════════════════════════
-// ASSETS (embedded as data URLs)
-// ═══════════════════════════════════════════════════════════
-const IMG = {};
-const ASSET_KEYS = [
-  'tikus_down','tikus_up','tikus_left','tikus_right',
-  'npc_pak_koak','npc_kiki','npc_blirik','npc_nyonya_siput','npc_petugas_got',
-  'tile_floor','tile_wall','tile_wall_moss','tile_pipe_h','tile_pipe_v','tile_puddle',
-  'item_peta','item_kunci','item_makanan','item_papan_kayu',
-  'item_obor','item_catatan','item_perangkap',
-  'ui_dialog_box','ui_hud_top','ui_inventory','ui_minimap','ui_notif_item','ui_pause_menu'
-];
+// ═══════════════════════════════════════════════════════════════════
+// TIKUS DI GOT — script.js
+// ═══════════════════════════════════════════════════════════════════
 
-// ═══════════════════════════════════════════════════════════
-// CONSTANTS
-// ═══════════════════════════════════════════════════════════
-const TILE = 48;
-const CANVAS_W = 900, CANVAS_H = 514;
-const MAP_W = 30, MAP_H = 24;
+const TILE = 48, CW = 900, CH = 514, MW = 30, MH = 24;
+const T = { FLOOR:1, WALL:2, MOSS:3, PIPEH:4, PIPEV:5, PUDDLE:6 };
 
-// Tile types
-const T = { EMPTY:0, FLOOR:1, WALL:2, WALL_MOSS:3, PIPE_H:4, PIPE_V:5, PUDDLE:6 };
-
-// ═══════════════════════════════════════════════════════════
-// MAP DEFINITION (30x24 grid)
-// ═══════════════════════════════════════════════════════════
-const MAP_DATA = [
+// ── MAP ─────────────────────────────────────────────────────────────
+const MAP = [
   [2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2],
   [2,1,1,1,1,1,1,1,1,2,2,1,1,1,1,1,1,1,1,2,2,1,1,1,1,1,1,1,1,2],
   [2,1,1,1,1,1,1,1,1,2,2,1,1,1,1,1,1,1,1,2,2,1,1,1,1,1,1,1,1,2],
   [2,1,1,1,1,1,1,1,1,2,2,1,1,1,1,1,1,1,1,2,2,1,1,1,1,1,1,1,1,2],
-  [2,1,1,6,1,1,1,1,1,1,1,1,1,4,4,4,1,1,1,1,1,1,1,1,6,1,1,1,1,2],
+  [2,1,1,6,1,1,1,1,1,1,1,1,1,4,4,4,4,1,1,1,1,1,1,1,6,1,1,1,1,2],
   [2,1,1,1,1,1,1,1,1,2,2,1,1,1,1,1,1,1,1,2,2,1,1,1,1,1,1,1,1,2],
   [2,1,1,1,1,1,1,1,1,2,2,1,1,1,1,1,1,1,1,2,2,1,1,1,1,1,1,1,1,2],
   [2,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,2],
@@ -44,661 +26,231 @@ const MAP_DATA = [
   [2,3,3,3,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,3,3,3,2],
   [2,1,1,3,1,1,1,1,1,2,2,1,1,1,1,1,1,1,1,2,2,1,1,1,1,1,3,1,1,2],
   [2,1,1,1,1,1,1,1,1,2,2,1,1,1,1,1,1,1,1,2,2,1,1,1,1,1,1,1,1,2],
-  [2,1,1,1,1,1,1,1,1,1,1,1,1,4,4,4,1,1,1,1,1,1,1,1,6,1,1,1,1,2],
+  [2,1,1,1,1,1,1,1,1,1,1,1,1,4,4,4,4,1,1,1,1,1,1,1,6,1,1,1,1,2],
   [2,1,1,6,1,1,1,1,1,2,2,1,1,1,1,1,1,1,1,2,2,1,1,1,1,1,1,1,1,2],
   [2,1,1,1,1,1,1,1,1,2,2,1,1,1,1,1,1,1,1,2,2,1,1,1,1,1,1,1,1,2],
   [2,1,1,1,1,1,1,1,1,2,2,1,1,1,1,1,1,1,1,2,2,1,1,1,1,1,1,1,1,2],
   [2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2],
 ];
 
-// ═══════════════════════════════════════════════════════════
-// GAME STATE
-// ═══════════════════════════════════════════════════════════
-const state = {
-  player: {
-    x: 14*TILE, y: 11*TILE,  // pixel position (center)
-    dir: 'down',
-    speed: 3.5,
-    moving: false,
-  },
-  camera: { x: 0, y: 0 },
-  keys: {},
-  inventory: [],
-  discoveredAreas: new Set(['tengah']),
-  timer: { hours:23, minutes:59, seconds:59, total: 23*3600+59*60+59 },
-  timerInterval: null,
-  gameRunning: false,
-  paused: false,
-  dialogOpen: false,
-  notifTimeout: null,
-  trapPositions: [
-    {tx:17, ty:4}, {tx:5, ty:11}, {tx:24, ty:12}, {tx:8, ty:19}
-  ],
-  itemPositions: [
-    { id:'item_makanan', tx:13, ty:7,  name:'Makanan Basi',    collected:false },
-    { id:'item_papan_kayu', tx:24, ty:3, name:'Papan Kayu',   collected:false },
-    { id:'item_obor',   tx:3,  ty:9,  name:'Obor Kecil',      collected:false },
-    { id:'item_catatan',tx:22, ty:15, name:'Catatan Kiki',     collected:false },
-  ],
-  exitPos: { tx:28, ty:13 },
-  npcs: [],
-  currentNPC: null,
-  currentDialogStep: 0,
-};
-
-// ═══════════════════════════════════════════════════════════
-// NPC DEFINITIONS + FSM
-// ═══════════════════════════════════════════════════════════
-const NPC_DEFS = [
-  {
-    id:'pak_koak', name:'Pak Koak', img:'npc_pak_koak',
-    tx:3, ty:15, state:'IDLE',
-    wanderRange:1,
-    dialogs: {
-      IDLE: {
-        text: 'Hei, Tikus Kecil! Sudah lama aku tidak bertemu siapapun. Petugas Kota akan datang besok pagi!',
-        choices: [
-          { text:'> Ada apa, Pak Koak?', next:'INFO' },
-          { text:'Permisi dulu.', close:true }
-        ]
-      },
-      INFO: {
-        text: 'Aku punya peta sebagian got ini... tapi kamu harus membantuku dulu. Bawakan aku Makanan Basi dari Got Tengah!',
-        choices: [
-          { text:'> Oke, aku carikan!', next:'WAITING', setState:'WAITING' },
-          { text:'Nanti dulu.', close:true }
-        ]
-      },
-      WAITING: {
-        text: 'Aku menunggu di sini. Jangan lupa bawakan Makanan Basi ya!',
-        choices: [
-          { text:'> Aku sudah bawa!', condition:'item_makanan', next:'GIVE', giveItem:'item_peta', takesItem:'item_makanan' },
-          { text:'Belum dapat nih.', close:true }
-        ]
-      },
-      GIVE: {
-        text: 'Wah, terima kasih! Ini petanya. Gunakan dengan baik untuk menemukan jalan keluar!',
-        choices: [
-          { text:'> Terima kasih, Pak Koak!', next:'DONE', setState:'DONE' }
-        ]
-      },
-      DONE: {
-        text: 'Hati-hati ya, Tikus Kecil. Semoga kamu bisa keluar sebelum Petugas datang!',
-        choices: [
-          { text:'> Terima kasih!', close:true }
-        ]
-      },
-    }
-  },
-  {
-    id:'kiki', name:'Kiki', img:'npc_kiki',
-    tx:22, ty:5, state:'WANDERING',
-    wanderRange:3,
-    wanderTimer:0,
-    wanderDirX:0, wanderDirY:0,
-    dialogs: {
-      WANDERING: {
-        text: 'Eh, ada tikus lain! Hei hei! Kamu mau keluar juga? Aku dengar ada lorong rahasia di Got Timur lho!',
-        choices: [
-          { text:'> Serius? Di mana?', next:'INFO2' },
-          { text:'Oh gitu ya.', close:true }
-        ]
-      },
-      INFO2: {
-        text: 'Iya! Tapi pintunya terkunci. Nyonya Siput di Got Timur punya kuncinya. Temui dia deh!',
-        choices: [
-          { text:'> Oke, aku cari Nyonya Siput!', next:'DONE2', setState:'DONE2', giveItem:'item_catatan' },
-          { text:'Makasih infonya!', close:true }
-        ]
-      },
-      DONE2: {
-        text: 'Ini catatan dariku! Ada peta kecil ke tempat Nyonya Siput. Semangat ya!',
-        choices: [
-          { text:'> Makasih Kiki!', close:true }
-        ]
-      },
-    }
-  },
-  {
-    id:'blirik', name:'Blirik', img:'npc_blirik',
-    tx:14, ty:11, state:'PATROL',
-    patrolPath:[{tx:14,ty:11},{tx:17,ty:11},{tx:17,ty:14},{tx:14,ty:14}],
-    patrolIdx:0, patrolTimer:0,
-    dialogs: {
-      PATROL: {
-        text: '...',
-        choices: []
-      },
-      BRIBED: {
-        text: 'Hmm... kali ini aku biarkan kamu lewat. Tapi lain kali jangan ganggu rondeku!',
-        choices: [
-          { text:'> Terima kasih, Blirik!', close:true }
-        ]
-      },
-      BLOCK: {
-        text: 'STOP! Area ini dijaga! Kamu tidak boleh lewat sembarangan!',
-        choices: [
-          { text:'> Ini makanannya...', condition:'item_makanan', next:'BRIBED', setState:'BRIBED', takesItem:'item_makanan' },
-          { text:'Maaf, aku pergi.', close:true }
-        ]
-      },
-    }
-  },
-  {
-    id:'nyonya_siput', name:'Nyonya Siput', img:'npc_nyonya_siput',
-    tx:25, ty:19, state:'IDLE',
-    wanderRange:1,
-    dialogs: {
-      IDLE: {
-        text: 'Oh, tamu! Jarang ada yang datang ke sini. Ada yang bisa aku bantu, sayang?',
-        choices: [
-          { text:'> Aku perlu kunci lorong!', next:'ASK_KEY' },
-          { text:'Hanya mampir saja.', close:true }
-        ]
-      },
-      ASK_KEY: {
-        text: 'Kunci lorong? Oh aku punya... tapi aku butuh Papan Kayu untuk memperbaiki rumahku dulu!',
-        choices: [
-          { text:'> Aku carikan papannya!', next:'WAITING_KEY', setState:'WAITING_KEY' },
-          { text:'Nanti ya.', close:true }
-        ]
-      },
-      WAITING_KEY: {
-        text: 'Aku tunggu Papan Kayunya ya. Jangan lama-lama, Petugas mau datang!',
-        choices: [
-          { text:'> Ini papannya!', condition:'item_papan_kayu', next:'GIVE_KEY', giveItem:'item_kunci', takesItem:'item_papan_kayu' },
-          { text:'Belum ada nih.', close:true }
-        ]
-      },
-      GIVE_KEY: {
-        text: 'Wah, terima kasih banyak! Ini kuncinya. Lorong rahasianya ada di pojok Got Utara. Hati-hati!',
-        choices: [
-          { text:'> Terima kasih, Nyonya!', next:'DONE3', setState:'DONE3' }
-        ]
-      },
-      DONE3: {
-        text: 'Semoga selamat ya, sayang. Aku akan pergi juga setelah ini.',
-        choices: [
-          { text:'> Sampai jumpa!', close:true }
-        ]
-      },
-    }
-  },
+// ── MISSION CHAIN (ordered, must complete in sequence) ──────────────
+// missionStep: 0=find makanan, 1=beri ke pak koak (dapat peta),
+//              2=temui kiki (dapat catatan), 3=find papan kayu,
+//              4=beri ke nyonya siput (dapat kunci), 5=exit
+const MISSIONS = [
+  { id:'m0', label:'Cari Makanan Basi di Got Tengah',    icon:'🍖' },
+  { id:'m1', label:'Beri Makanan ke Pak Koak → Dapat Peta', icon:'🗺️' },
+  { id:'m2', label:'Temui Kiki untuk dapat info',        icon:'💬' },
+  { id:'m3', label:'Cari Papan Kayu di Got Timur',       icon:'🪵' },
+  { id:'m4', label:'Beri Papan ke Nyonya Siput → Dapat Kunci', icon:'🔑' },
+  { id:'m5', label:'Temukan Pintu Keluar!',              icon:'🚪' },
 ];
 
-// ═══════════════════════════════════════════════════════════
-// IMAGE LOADER
-// ═══════════════════════════════════════════════════════════
-function loadImages(callback) {
-  // We'll draw everything procedurally since assets are matplotlib PNGs
-  // but still try to load them
-  let loaded = 0;
-  const total = ASSET_KEYS.length;
-
-  if (total === 0) { callback(); return; }
-
-  ASSET_KEYS.forEach(key => {
-    const img = new Image();
-    img.onload = img.onerror = () => {
-      loaded++;
-      if (loaded >= total) callback();
-    };
-    // Assets will be set externally or use fallback
-    IMG[key] = img;
-    img.src = ''; // placeholder — will use procedural drawing
-    // immediately trigger
-    img.dispatchEvent(new Event('error'));
-  });
-}
-
-// ═══════════════════════════════════════════════════════════
-// CANVAS SETUP
-// ═══════════════════════════════════════════════════════════
-const canvas = document.getElementById('gameCanvas');
-const ctx = canvas.getContext('2d');
-const mmCanvas = document.getElementById('minimapCanvas');
-const mmCtx = mmCanvas.getContext('2d');
-
-// ═══════════════════════════════════════════════════════════
-// PROCEDURAL DRAWING FUNCTIONS
-// ═══════════════════════════════════════════════════════════
-function drawTile(ctx, type, px, py, tw=TILE, th=TILE) {
-  switch(type) {
-    case T.FLOOR:
-      ctx.fillStyle = '#1A1208';
-      ctx.fillRect(px,py,tw,th);
-      ctx.fillStyle = '#1E150A';
-      for(let i=0;i<2;i++) for(let j=0;j<2;j++) {
-        ctx.fillRect(px+i*tw/2+1,py+j*th/2+1,tw/2-2,th/2-2);
+// ── NPC DEFINITIONS ─────────────────────────────────────────────────
+const NPC_DEFS = [
+  {
+    id:'pak_koak', name:'Pak Koak', img:'assets/npc_pak_koak.png',
+    tx:3, ty:15, fsmState:'IDLE', wanderRange:1,
+    // required mission step to enter this NPC's quest dialog
+    requiredStep: 0, // player must have item_makanan
+    dialogs:{
+      IDLE:{
+        text:'Hei, Tikus Kecil! Petugas Kota akan datang besok pagi! Aku punya peta got ini... tapi aku lapar sekali.',
+        choices:[
+          {text:'> Ada apa, Pak Koak?', next:'INFO'},
+          {text:'Permisi dulu.', close:true}
+        ]
+      },
+      INFO:{
+        text:'Bawakan aku Makanan Basi dari Got Tengah, dan aku berikan petanya padamu!',
+        choices:[
+          {text:'> Oke, aku carikan!', close:true},
+          {text:'Nanti dulu.', close:true}
+        ]
+      },
+      WAITING:{
+        text:'Sudah dapat makanannya belum? Aku sangat lapar...',
+        choices:[
+          {
+            text:'> Ini makanannya!',
+            needItem:'item_makanan',
+            needStep:0,
+            removeItem:'item_makanan',
+            giveItem:'item_peta', giveItemName:'Peta Sebagian Got',
+            advanceStep:1,
+            next:'DONE'
+          },
+          {text:'Belum dapat nih.', close:true}
+        ]
+      },
+      DONE:{
+        text:'Terima kasih banyak! Ini peta got-nya. Hati-hati ya! Dan coba temui Kiki, dia tahu jalan rahasia.',
+        choices:[{text:'> Terima kasih, Pak Koak!', close:true}]
       }
-      ctx.strokeStyle='#111'; ctx.lineWidth=0.5;
-      ctx.strokeRect(px,py,tw,th);
-      break;
-    case T.WALL: case T.WALL_MOSS:
-      const wc = type===T.WALL_MOSS?'#1A2A10':'#2A1F0F';
-      ctx.fillStyle=wc; ctx.fillRect(px,py,tw,th);
-      const bc = type===T.WALL_MOSS?'#253818':'#352515';
-      ctx.fillStyle=bc;
-      for(let r=0;r<3;r++){
-        const off=(r%2)*tw/2;
-        for(let c=0;c<3;c++){
-          ctx.strokeStyle=type===T.WALL_MOSS?'#1A2A10':'#1A1008';
-          ctx.lineWidth=0.5;
-          ctx.fillRect(px+off+c*tw/2+1,py+r*th/3+1,tw/2-2,th/3-2);
-          ctx.strokeRect(px+off+c*tw/2+1,py+r*th/3+1,tw/2-2,th/3-2);
-        }
+    }
+  },
+  {
+    id:'kiki', name:'Kiki', img:'assets/npc_kiki.png',
+    tx:23, ty:5, fsmState:'WANDERING', wanderRange:2,
+    requiredStep: 1,
+    dialogs:{
+      WANDERING:{
+        text:'Eh ada tikus lain! Kamu mau kabur juga? Ikuti aku!',
+        choices:[
+          {text:'> Ada info apa?', next:'INFO2'},
+          {text:'Hm, nanti.', close:true}
+        ]
+      },
+      INFO2:{
+        text:'Ada lorong rahasia di ujung peta. Tapi pintunya terkunci. Nyonya Siput di Got Selatan punya kuncinya—tapi dia butuh Papan Kayu dulu!',
+        choices:[
+          {
+            text:'> Oke, aku cari Papan Kayu!',
+            needStep:1,
+            giveItem:'item_catatan', giveItemName:'Catatan Kiki',
+            advanceStep:2,
+            next:'DONE2'
+          },
+          {text:'Makasih infonya.', close:true}
+        ]
+      },
+      DONE2:{
+        text:'Ini catatan dariku! Ada clue posisi Nyonya Siput. Semangat ya, kita bisa kabur!',
+        choices:[{text:'> Makasih Kiki! 💪', close:true}]
       }
-      ctx.fillStyle='#1A1008'; ctx.fillRect(px,py+th-4,tw,4);
-      if(type===T.WALL_MOSS) {
-        ctx.fillStyle='rgba(58,90,32,0.6)';
-        for(let m=0;m<3;m++) ctx.fillRect(px+m*14+4,py+th-10,10,6);
+    }
+  },
+  {
+    id:'nyonya_siput', name:'Nyonya Siput', img:'assets/npc_nyonya_siput.png',
+    tx:25, ty:19, fsmState:'IDLE', wanderRange:1,
+    requiredStep: 2,
+    dialogs:{
+      IDLE:{
+        text:'Oh, ada tamu! Jarang ada yang mampir ke sini. Mau apa, sayang?',
+        choices:[
+          {text:'> Aku butuh kunci lorong!', next:'ASK'},
+          {text:'Hanya mampir.', close:true}
+        ]
+      },
+      ASK:{
+        text:'Kunci? Aku punya... tapi rumahku rusak. Bawakan aku Papan Kayu dan kuncinya untukmu!',
+        choices:[
+          {text:'> Aku carikan!', close:true},
+          {text:'Nanti ya.', close:true}
+        ]
+      },
+      WAITING:{
+        text:'Sudah dapat papan kayunya? Rumahku sudah mau roboh nih...',
+        choices:[
+          {
+            text:'> Ini papan kayunya!',
+            needItem:'item_papan_kayu',
+            needStep:3,
+            removeItem:'item_papan_kayu',
+            giveItem:'item_kunci', giveItemName:'Kunci Lorong',
+            advanceStep:4,
+            next:'DONE3'
+          },
+          {text:'Belum dapat nih.', close:true}
+        ]
+      },
+      DONE3:{
+        text:'Terima kasih banyak, sayang! Ini kuncinya. Pintunya ada di pojok utara. Hati-hati dengan Petugas!',
+        choices:[{text:'> Terima kasih, Nyonya!', close:true}]
       }
-      break;
-    case T.PIPE_H:
-      ctx.fillStyle='#1A1208'; ctx.fillRect(px,py,tw,th);
-      ctx.fillStyle='#3D5A3E'; ctx.fillRect(px,py+th*0.3,tw,th*0.4);
-      ctx.fillStyle='#4A6E4B'; ctx.fillRect(px,py+th*0.55,tw,th*0.1);
-      ctx.fillStyle='#2A3D2B'; ctx.fillRect(px,py+th*0.3,tw,th*0.06);
-      for(let s=0;s<tw;s+=14) { ctx.fillStyle='#2A3D2B'; ctx.fillRect(px+s,py+th*0.3,1,th*0.4); }
-      break;
-    case T.PIPE_V:
-      ctx.fillStyle='#1A1208'; ctx.fillRect(px,py,tw,th);
-      ctx.fillStyle='#3D5A3E'; ctx.fillRect(px+tw*0.3,py,tw*0.4,th);
-      ctx.fillStyle='#4A6E4B'; ctx.fillRect(px+tw*0.55,py,tw*0.1,th);
-      ctx.fillStyle='#2A3D2B'; ctx.fillRect(px+tw*0.3,py,tw*0.06,th);
-      for(let s=0;s<th;s+=14) { ctx.fillStyle='#2A3D2B'; ctx.fillRect(px+tw*0.3,py+s,tw*0.4,1); }
-      // drip
-      ctx.fillStyle='rgba(26,64,96,0.7)';
-      ctx.beginPath(); ctx.ellipse(px+tw*0.7,py+th*0.4,3,5,0,0,Math.PI*2); ctx.fill();
-      break;
-    case T.PUDDLE:
-      ctx.fillStyle='#1A1208'; ctx.fillRect(px,py,tw,th);
-      ctx.fillStyle='rgba(10,30,48,0.9)';
-      ctx.beginPath(); ctx.ellipse(px+tw/2,py+th/2,tw*0.45,th*0.35,0,0,Math.PI*2); ctx.fill();
-      ctx.fillStyle='rgba(26,64,96,0.45)';
-      ctx.beginPath(); ctx.ellipse(px+tw*0.55,py+th*0.45,tw*0.18,th*0.12,0,0,Math.PI*2); ctx.fill();
-      break;
-    default:
-      ctx.fillStyle='#1A1208'; ctx.fillRect(px,py,tw,th);
+    }
+  },
+  {
+    id:'blirik', name:'Blirik', img:'assets/npc_blirik.png',
+    tx:14, ty:11, fsmState:'PATROL', wanderRange:0,
+    requiredStep:-1, // no quest, just guard
+    patrolPath:[{tx:12,ty:9},{tx:17,ty:9},{tx:17,ty:14},{tx:12,ty:14}],
+    patrolIdx:0, patrolTimer:0,
+    dialogs:{
+      BLOCK:{
+        text:'STOP! Area ini dijaga! Kamu tidak boleh lewat sembarangan! Pergi sekarang!',
+        choices:[{text:'> Baik baik...', close:true}]
+      },
+      PATROL:{
+        text:'...',
+        choices:[{text:'Maaf, permisi.', close:true}]
+      }
+    }
+  },
+  {
+    id:'petugas', name:'Petugas Got', img:'assets/npc_petugas_got.png',
+    tx:28, ty:13, fsmState:'PATROL', wanderRange:0,
+    requiredStep:-1,
+    patrolPath:[
+      {tx:27,ty:7},{tx:27,ty:13},{tx:27,ty:19},
+      {tx:22,ty:19},{tx:22,ty:7},{tx:27,ty:7}
+    ],
+    patrolIdx:0, patrolTimer:0, patrolSpeed:35,
+    dialogs:{}
   }
+];
+
+// ── ITEMS ON MAP ─────────────────────────────────────────────────────
+const ITEM_DEFS = [
+  {id:'item_makanan',   name:'Makanan Basi',  tx:13, ty:7,  img:'assets/item_makanan.png',   collected:false, requiredStep:0},
+  {id:'item_papan_kayu',name:'Papan Kayu',    tx:24, ty:3,  img:'assets/item_papan_kayu.png', collected:false, requiredStep:2},
+  {id:'item_obor',      name:'Obor Kecil',    tx:3,  ty:9,  img:'assets/item_obor.png',       collected:false, requiredStep:-1},
+  {id:'item_catatan',   name:'Catatan Kiki',  tx:22, ty:15, img:'assets/item_catatan.png',    collected:false, requiredStep:-1},
+];
+
+// ── TRAPS ────────────────────────────────────────────────────────────
+const TRAPS = [
+  {tx:17,ty:4},{tx:5,ty:11},{tx:24,ty:12},{tx:8,ty:19},{tx:20,ty:7},{tx:11,ty:20}
+];
+
+// EXIT
+const EXIT = {tx:28, ty:13, requiredStep:4};
+
+// ═══════════════════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════════════════
+let G = {};
+function resetState() {
+  G = {
+    running: false, paused: false, dialogOpen: false,
+    mobileMode: false, tick: 0,
+    player: { x:14*TILE+TILE/2, y:11*TILE+TILE/2, dir:'down', moving:false, speed:3.2 },
+    camera: { x:0, y:0 },
+    keys: {},
+    inventory: [],
+    missionStep: 0,
+    npcs: NPC_DEFS.map(d=>({
+      ...d,
+      x: d.tx*TILE+TILE/2, y: d.ty*TILE+TILE/2,
+      ox: d.tx, oy: d.ty,
+      fsmState: d.fsmState,
+      patrolIdx: d.patrolIdx||0,
+      patrolTimer: 0,
+      wTimer: 0,
+      alertMode: false,
+      lastSeen: 0,
+    })),
+    items: ITEM_DEFS.map(d=>({...d})),
+    timerSec: 23*3600+59*60+59,
+    timerInterval: null,
+    alertBorderOn: false,
+    currentNpc: null,
+    notifTimeout: null,
+  };
 }
 
-function drawPlayer(ctx, px, py, dir, moving, t) {
-  const bobY = moving ? Math.sin(t*0.18)*3 : 0;
-  const y = py + bobY;
-  const s = TILE*0.9;
+// ═══════════════════════════════════════════════════════════════════
+// CANVAS / CONTEXT
+// ═══════════════════════════════════════════════════════════════════
+const canvas = document.getElementById('gc');
+const ctx    = canvas.getContext('2d');
+const mmCvs  = document.getElementById('mmc');
+const mmCtx  = mmCvs.getContext('2d');
 
-  // Shadow
-  ctx.fillStyle='rgba(0,0,0,0.4)';
-  ctx.beginPath(); ctx.ellipse(px,py+s*0.42,s*0.28,s*0.1,0,0,Math.PI*2); ctx.fill();
-
-  // Tail
-  ctx.strokeStyle='#B08858'; ctx.lineWidth=3;
-  ctx.lineCap='round';
-  ctx.beginPath();
-  if(dir==='down'||dir==='up') {
-    ctx.moveTo(px+s*0.18,y+s*0.1);
-    ctx.bezierCurveTo(px+s*0.5,y+s*0.25,px+s*0.6,y,px+s*0.5,y-s*0.2);
-  } else if(dir==='right') {
-    ctx.moveTo(px-s*0.2,y+s*0.05);
-    ctx.bezierCurveTo(px-s*0.5,y+s*0.2,px-s*0.7,y,px-s*0.6,y-s*0.2);
-  } else {
-    ctx.moveTo(px+s*0.2,y+s*0.05);
-    ctx.bezierCurveTo(px+s*0.5,y+s*0.2,px+s*0.7,y,px+s*0.6,y-s*0.2);
-  }
-  ctx.stroke();
-
-  // Body
-  ctx.fillStyle='#C8A878';
-  ctx.beginPath(); ctx.ellipse(px,y,s*0.22,s*0.28,0,0,Math.PI*2); ctx.fill();
-  // Jacket
-  ctx.fillStyle='#1A3A6A';
-  ctx.beginPath(); ctx.ellipse(px,y,s*0.2,s*0.26,0,0,Math.PI*2); ctx.fill();
-  ctx.fillStyle='#C8A878';
-  ctx.beginPath(); ctx.ellipse(px,y-s*0.08,s*0.1,s*0.14,0,0,Math.PI*2); ctx.fill();
-
-  // Head
-  ctx.fillStyle='#C8A878';
-  ctx.beginPath(); ctx.arc(px,y-s*0.3,s*0.17,0,Math.PI*2); ctx.fill();
-
-  // Ears
-  ctx.fillStyle='#C8A878';
-  ctx.beginPath(); ctx.arc(px-s*0.12,y-s*0.44,s*0.08,0,Math.PI*2); ctx.fill();
-  ctx.beginPath(); ctx.arc(px+s*0.12,y-s*0.44,s*0.08,0,Math.PI*2); ctx.fill();
-  ctx.fillStyle='#E8A0A0';
-  ctx.beginPath(); ctx.arc(px-s*0.12,y-s*0.44,s*0.05,0,Math.PI*2); ctx.fill();
-  ctx.beginPath(); ctx.arc(px+s*0.12,y-s*0.44,s*0.05,0,Math.PI*2); ctx.fill();
-
-  if(dir!=='up') {
-    // Eyes
-    ctx.fillStyle='#111';
-    ctx.beginPath(); ctx.arc(px-s*0.07,y-s*0.31,s*0.035,0,Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.arc(px+s*0.07,y-s*0.31,s*0.035,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle='white';
-    ctx.beginPath(); ctx.arc(px-s*0.06,y-s*0.32,s*0.014,0,Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.arc(px+s*0.08,y-s*0.32,s*0.014,0,Math.PI*2); ctx.fill();
-    // Nose
-    ctx.fillStyle='#FF8888';
-    ctx.beginPath(); ctx.arc(px,y-s*0.24,s*0.025,0,Math.PI*2); ctx.fill();
-    // Whiskers
-    ctx.strokeStyle='#999'; ctx.lineWidth=0.8;
-    for(const [wx,wy] of [[-s*0.22,0],[-s*0.22,s*0.04],[s*0.22,0],[s*0.22,s*0.04]]) {
-      ctx.beginPath(); ctx.moveTo(px,y-s*0.24); ctx.lineTo(px+wx,y-s*0.24+wy); ctx.stroke();
-    }
-  }
-
-  // Player arrow indicator
-  ctx.fillStyle='#FFD700';
-  ctx.font=`${TILE*0.35}px monospace`;
-  ctx.textAlign='center'; ctx.textBaseline='middle';
-  ctx.fillText('▼',px,y-s*0.65);
-}
-
-function drawNPC(ctx, npc, camX, camY, t) {
-  const px = npc.x - camX;
-  const py = npc.y - camY;
-  const s = TILE*0.9;
-  const bobY = Math.sin(t*0.05 + npc.id.length)*2;
-
-  if(npc.id==='pak_koak') {
-    // Shadow
-    ctx.fillStyle='rgba(0,0,0,0.35)';
-    ctx.beginPath(); ctx.ellipse(px,py+s*0.45,s*0.3,s*0.1,0,0,Math.PI*2); ctx.fill();
-    // Body
-    ctx.fillStyle='#4A7A30';
-    ctx.beginPath(); ctx.ellipse(px,py+bobY,s*0.25,s*0.32,0,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle='#7AB850';
-    ctx.beginPath(); ctx.ellipse(px,py+s*0.1+bobY,s*0.18,s*0.22,0,0,Math.PI*2); ctx.fill();
-    // Head
-    ctx.fillStyle='#5A8A3A';
-    ctx.beginPath(); ctx.arc(px,py-s*0.18+bobY,s*0.2,0,Math.PI*2); ctx.fill();
-    // Eyes
-    ctx.fillStyle='#8AC040';
-    ctx.beginPath(); ctx.ellipse(px-s*0.1,py-s*0.25+bobY,s*0.1,s*0.09,0,0,Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.ellipse(px+s*0.1,py-s*0.25+bobY,s*0.1,s*0.09,0,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle='#111';
-    ctx.beginPath(); ctx.arc(px-s*0.1,py-s*0.25+bobY,s*0.05,0,Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.arc(px+s*0.1,py-s*0.25+bobY,s*0.05,0,Math.PI*2); ctx.fill();
-    // Hat
-    ctx.fillStyle='#2A1A08';
-    ctx.beginPath(); ctx.ellipse(px,py-s*0.35+bobY,s*0.22,s*0.06,0,0,Math.PI*2); ctx.fill();
-    ctx.fillRect(px-s*0.12,py-s*0.55+bobY,s*0.24,s*0.2);
-    ctx.beginPath(); ctx.ellipse(px,py-s*0.55+bobY,s*0.16,s*0.05,0,0,Math.PI*2); ctx.fill();
-    // Legs
-    ctx.fillStyle='#4A7A30';
-    ctx.beginPath(); ctx.ellipse(px-s*0.14,py+s*0.45+bobY,s*0.12,s*0.07,0,0,Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.ellipse(px+s*0.14,py+s*0.45+bobY,s*0.12,s*0.07,0,0,Math.PI*2); ctx.fill();
-  }
-  else if(npc.id==='kiki') {
-    ctx.fillStyle='rgba(0,0,0,0.3)';
-    ctx.beginPath(); ctx.ellipse(px,py+s*0.42,s*0.22,s*0.08,0,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle='#FF9AB0';
-    ctx.beginPath(); ctx.ellipse(px,py+s*0.05+bobY,s*0.18,s*0.28,0,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle='#FF6B8A';
-    ctx.beginPath(); ctx.ellipse(px,py+s*0.25+bobY,s*0.22,s*0.12,0,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle='#D4B896';
-    ctx.beginPath(); ctx.arc(px,py-s*0.2+bobY,s*0.17,0,Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.arc(px-s*0.11,py-s*0.33+bobY,s*0.07,0,Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.arc(px+s*0.11,py-s*0.33+bobY,s*0.07,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle='#E8A0B0';
-    ctx.beginPath(); ctx.arc(px-s*0.11,py-s*0.33+bobY,s*0.04,0,Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.arc(px+s*0.11,py-s*0.33+bobY,s*0.04,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle='#111';
-    ctx.beginPath(); ctx.arc(px-s*0.06,py-s*0.22+bobY,s*0.032,0,Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.arc(px+s*0.06,py-s*0.22+bobY,s*0.032,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle='white';
-    ctx.beginPath(); ctx.arc(px-s*0.05,py-s*0.215+bobY,s*0.013,0,Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.arc(px+s*0.07,py-s*0.215+bobY,s*0.013,0,Math.PI*2); ctx.fill();
-    // Blush
-    ctx.fillStyle='rgba(255,176,192,0.6)';
-    ctx.beginPath(); ctx.ellipse(px-s*0.1,py-s*0.12+bobY,s*0.06,s*0.03,0,0,Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.ellipse(px+s*0.1,py-s*0.12+bobY,s*0.06,s*0.03,0,0,Math.PI*2); ctx.fill();
-    // Ribbon
-    ctx.fillStyle='#FF4488';
-    ctx.beginPath(); ctx.ellipse(px+s*0.1,py-s*0.37+bobY,s*0.1,s*0.05,-0.5,0,Math.PI*2); ctx.fill();
-    // Tail
-    ctx.strokeStyle='#C4A080'; ctx.lineWidth=2;
-    ctx.beginPath(); ctx.moveTo(px+s*0.12,py+s*0.1+bobY);
-    ctx.bezierCurveTo(px+s*0.3,py+s*0.25+bobY,px+s*0.4,py+s*0.1+bobY,px+s*0.35,py-s*0.05+bobY);
-    ctx.stroke();
-  }
-  else if(npc.id==='blirik') {
-    ctx.fillStyle='rgba(0,0,0,0.35)';
-    ctx.beginPath(); ctx.ellipse(px,py+s*0.42,s*0.22,s*0.08,0,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle='#2A1A08';
-    ctx.beginPath(); ctx.ellipse(px,py+bobY,s*0.2,s*0.32,0,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle='#3D2810';
-    ctx.beginPath(); ctx.ellipse(px-s*0.08,py+s*0.02+bobY,s*0.14,s*0.28,-0.1,0,Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.ellipse(px+s*0.08,py+s*0.02+bobY,s*0.14,s*0.28,0.1,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle='#3D2810';
-    ctx.beginPath(); ctx.arc(px,py-s*0.22+bobY,s*0.12,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle='#CC2200';
-    ctx.beginPath(); ctx.arc(px-s*0.06,py-s*0.26+bobY,s*0.04,0,Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.arc(px+s*0.06,py-s*0.26+bobY,s*0.04,0,Math.PI*2); ctx.fill();
-    ctx.strokeStyle='#5A3A18'; ctx.lineWidth=1.5;
-    for(const [ax,ay,ex,ey] of [
-      [-s*.04,s*-.12,-s*.2,s*-.02],[-s*.04,s*-.12,-s*.2,s*-.22],
-      [s*.04,s*-.12,s*.2,s*-.02],[s*.04,s*-.12,s*.2,s*-.22]
-    ]) {
-      ctx.beginPath(); ctx.moveTo(px+ax,py-s*0.22+ay+bobY); ctx.lineTo(px+ex,py-s*0.22+ey+bobY); ctx.stroke();
-    }
-    // Legs
-    for(const [lx,ly] of [[-s*.18,-s*.1],[-s*.18,s*.05],[-s*.18,s*.2],[s*.18,-s*.1],[s*.18,s*.05],[s*.18,s*.2]]) {
-      ctx.strokeStyle='#2A1A08'; ctx.lineWidth=1.5;
-      ctx.beginPath(); ctx.moveTo(px+lx*0.5,py+ly+bobY); ctx.lineTo(px+lx,py+ly+s*.12+bobY); ctx.stroke();
-    }
-    // Badge
-    ctx.fillStyle='#FF6600';
-    roundRect(ctx,px-s*.1,py-s*.08+bobY,s*.2,s*.1,3); ctx.fill();
-    ctx.fillStyle='white'; ctx.font=`bold ${TILE*0.13}px monospace`;
-    ctx.textAlign='center'; ctx.textBaseline='middle';
-    ctx.fillText('JAGA',px,py-s*.03+bobY);
-  }
-  else if(npc.id==='nyonya_siput') {
-    ctx.fillStyle='rgba(0,0,0,0.3)';
-    ctx.beginPath(); ctx.ellipse(px,py+s*0.42,s*0.28,s*0.1,0,0,Math.PI*2); ctx.fill();
-    // Shell
-    for(const [r,c] of [[s*.35,'#C4883A'],[s*.28,'#D49A4A'],[s*.21,'#C4883A'],[s*.14,'#B87830']]) {
-      ctx.fillStyle=c;
-      ctx.beginPath(); ctx.arc(px+s*0.08,py-s*0.1+bobY,r,0,Math.PI*2); ctx.fill();
-    }
-    ctx.fillStyle='rgba(232,184,96,0.4)';
-    ctx.beginPath(); ctx.ellipse(px,py-s*0.22+bobY,s*0.12,s*0.06,-0.5,0,Math.PI*2); ctx.fill();
-    // Body
-    ctx.fillStyle='#D4AA70';
-    ctx.beginPath(); ctx.ellipse(px-s*0.05,py+s*0.2+bobY,s*0.32,s*0.16,0,0,Math.PI*2); ctx.fill();
-    // Head
-    ctx.fillStyle='#D4AA70';
-    ctx.beginPath(); ctx.arc(px-s*0.28,py+s*0.05+bobY,s*0.14,0,Math.PI*2); ctx.fill();
-    // Tentacles
-    for(const [tx2,ty2] of [[-s*.04,s*.1],[s*.04,s*.1]]) {
-      ctx.strokeStyle='#C4A060'; ctx.lineWidth=2.5;
-      ctx.beginPath(); ctx.moveTo(px-s*.28+tx2,py+s*.05+bobY); ctx.lineTo(px-s*.28+tx2,py-s*.05+bobY); ctx.stroke();
-      ctx.fillStyle='#111';
-      ctx.beginPath(); ctx.arc(px-s*.28+tx2,py-s*.07+bobY,s*.025,0,Math.PI*2); ctx.fill();
-    }
-    // Flower on shell
-    ctx.fillStyle='#FF6B9D';
-    ctx.beginPath(); ctx.arc(px+s*0.08,py-s*0.32+bobY,s*0.05,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle='#FFB0D0';
-    for(let a=0;a<6;a++) {
-      const fx=px+s*0.08+Math.cos(a*Math.PI/3)*s*0.08;
-      const fy=py-s*0.32+bobY+Math.sin(a*Math.PI/3)*s*0.08;
-      ctx.beginPath(); ctx.arc(fx,fy,s*0.04,0,Math.PI*2); ctx.fill();
-    }
-  }
-  else if(npc.id==='petugas_got') {
-    ctx.fillStyle='rgba(0,0,0,0.4)';
-    ctx.beginPath(); ctx.ellipse(px,py+s*0.42,s*0.25,s*0.09,0,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle='#2A4A1A';
-    ctx.beginPath(); ctx.ellipse(px,py+s*0.2+bobY,s*0.22,s*0.22,0,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle='#D4A800';
-    ctx.beginPath(); ctx.ellipse(px,py-s*0.05+bobY,s*0.24,s*0.28,0,0,Math.PI*2); ctx.fill();
-    // Reflective strips
-    ctx.fillStyle='rgba(180,180,180,0.7)';
-    ctx.beginPath(); ctx.ellipse(px,py-s*0.1+bobY,s*0.22,s*0.025,0,0,Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.ellipse(px,py+s*0.05+bobY,s*0.22,s*0.025,0,0,Math.PI*2); ctx.fill();
-    // Helmet
-    ctx.fillStyle='#FFDD00';
-    ctx.beginPath(); ctx.arc(px,py-s*0.32+bobY,s*0.18,0,Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.ellipse(px,py-s*0.4+bobY,s*0.28,s*0.08,0,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle='rgba(26,42,58,0.88)';
-    ctx.beginPath(); ctx.ellipse(px,py-s*0.33+bobY,s*0.24,s*0.1,0,0,Math.PI*2); ctx.fill();
-    // Broom
-    ctx.strokeStyle='#8B6914'; ctx.lineWidth=3;
-    ctx.beginPath(); ctx.moveTo(px+s*0.18,py-s*0.05+bobY); ctx.lineTo(px+s*0.42,py+s*0.42+bobY); ctx.stroke();
-    ctx.fillStyle='#5A3A10';
-    ctx.beginPath(); ctx.ellipse(px+s*0.45,py+s*0.48+bobY,s*0.1,s*0.06,0.3,0,Math.PI*2); ctx.fill();
-  }
-
-  // NPC interaction indicator
-  const nearby = isNearby(state.player, npc, TILE*2.2);
-  if(nearby && !state.dialogOpen) {
-    const isBribed = npc.id==='blirik' && npc.state==='BRIBED';
-    const isDone = npc.state==='DONE' || npc.state==='DONE2' || npc.state==='DONE3';
-    const ind = isDone ? '•' : '!';
-    const indBg = isDone ? '#4A4A4A' : '#FFD700';
-    const indColor = isDone ? '#888' : '#1A0A00';
-    ctx.fillStyle=indBg;
-    roundRect(ctx,px-10,py-s*0.65-18,20,22,4); ctx.fill();
-    ctx.fillStyle=indColor; ctx.font=`bold ${TILE*0.35}px monospace`;
-    ctx.textAlign='center'; ctx.textBaseline='middle';
-    ctx.fillText(ind,px,py-s*0.65-7);
-  }
-
-  // NPC Name tag
-  ctx.fillStyle='rgba(10,26,10,0.85)';
-  const nameW = npc.name.length*6+12;
-  roundRect(ctx,px-nameW/2,py+s*0.5,nameW,16,4); ctx.fill();
-  ctx.fillStyle=npc.id==='blirik'?'#FFAA44':npc.id==='kiki'?'#FFAACC':'#AAFFAA';
-  ctx.font=`${TILE*0.2}px monospace`; ctx.textAlign='center'; ctx.textBaseline='middle';
-  ctx.fillText(npc.name,px,py+s*0.5+8);
-}
-
-function drawTrap(ctx, px, py) {
-  ctx.fillStyle='#7A5810';
-  roundRect(ctx,px-14,py-5,28,10,2); ctx.fill();
-  ctx.strokeStyle='#4A3000'; ctx.lineWidth=1.5;
-  roundRect(ctx,px-14,py-5,28,10,2); ctx.stroke();
-  ctx.strokeStyle='#C0A020'; ctx.lineWidth=2;
-  ctx.beginPath(); ctx.moveTo(px-10,py-5); ctx.lineTo(px,py-13); ctx.lineTo(px+10,py-5); ctx.stroke();
-  ctx.fillStyle='rgba(255,0,0,0.12)';
-  ctx.beginPath(); ctx.ellipse(px,py,20,12,0,0,Math.PI*2); ctx.fill();
-}
-
-function drawItem(ctx, item, t) {
-  if(item.collected) return;
-  const px = item.tx*TILE + TILE/2 - state.camera.x;
-  const py = item.ty*TILE + TILE/2 - state.camera.y;
-  const bobY = Math.sin(t*0.05)*4;
-
-  // Glow
-  const grd = ctx.createRadialGradient(px,py,0,px,py,24);
-  grd.addColorStop(0,'rgba(255,215,0,0.2)');
-  grd.addColorStop(1,'rgba(255,215,0,0)');
-  ctx.fillStyle=grd;
-  ctx.beginPath(); ctx.ellipse(px,py+5,22,8,0,0,Math.PI*2); ctx.fill();
-
-  // Item icon (drawn procedurally)
-  ctx.save();
-  ctx.translate(px, py+bobY);
-  const ic = TILE*0.35;
-  if(item.id==='item_makanan') {
-    ctx.fillStyle='#8B4513'; ctx.beginPath(); ctx.arc(0,0,ic*0.7,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle='#A0522D'; ctx.beginPath(); ctx.arc(0,0,ic*0.4,0,Math.PI*2); ctx.fill();
-    ctx.strokeStyle='rgba(100,180,50,0.6)'; ctx.lineWidth=1.5;
-    for(let i=0;i<3;i++) { ctx.beginPath(); ctx.moveTo(0,-ic*0.7); ctx.bezierCurveTo(ic*0.3,-ic*0.4,0,0,0,-ic*0.1); ctx.stroke(); }
-  } else if(item.id==='item_papan_kayu') {
-    ctx.fillStyle='#8B6914';
-    for(let i=0;i<3;i++) { roundRect(ctx,-ic*0.9,i*ic*0.5-ic*0.6,ic*1.8,ic*0.42,2); ctx.fill(); }
-  } else if(item.id==='item_obor') {
-    ctx.fillStyle='#8B6914'; ctx.fillRect(-3,-ic*0.8,6,ic*1.2);
-    for(const [r,c] of [[ic*0.5,'#FF4400'],[ic*0.38,'#FF6600'],[ic*0.25,'#FF9900'],[ic*0.14,'#FFDD00']]) {
-      ctx.fillStyle=c; ctx.beginPath(); ctx.ellipse(0,-ic*0.8,r,r*1.4,0,0,Math.PI*2); ctx.fill();
-    }
-  } else if(item.id==='item_catatan') {
-    ctx.fillStyle='#F0E8D0'; roundRect(ctx,-ic*0.7,-ic*0.8,ic*1.4,ic*1.6,3); ctx.fill();
-    ctx.strokeStyle='#A09070'; ctx.lineWidth=1;
-    for(let i=0;i<4;i++) { ctx.beginPath(); ctx.moveTo(-ic*0.5,-ic*0.5+i*ic*0.4); ctx.lineTo(ic*0.5,-ic*0.5+i*ic*0.4); ctx.stroke(); }
-  }
-  ctx.restore();
-
-  // Label
-  ctx.fillStyle='rgba(10,8,0,0.85)';
-  const lw = item.name.length*5.5+10;
-  roundRect(ctx,px-lw/2,py+bobY+14,lw,14,3); ctx.fill();
-  ctx.fillStyle='#CCAA55'; ctx.font=`${TILE*0.18}px monospace`;
-  ctx.textAlign='center'; ctx.textBaseline='middle';
-  ctx.fillText(item.name,px,py+bobY+21);
-}
-
-function drawExit(ctx, t) {
-  const ex = state.exitPos.tx * TILE + TILE/2 - state.camera.x;
-  const ey = state.exitPos.ty * TILE + TILE/2 - state.camera.y;
-  const pulse = 0.7 + Math.sin(t*0.06)*0.3;
-
-  // Exit glow
-  const grd = ctx.createRadialGradient(ex,ey,0,ex,ey,TILE*1.2);
-  grd.addColorStop(0,`rgba(255,255,100,${0.35*pulse})`);
-  grd.addColorStop(1,'rgba(255,255,0,0)');
-  ctx.fillStyle=grd;
-  ctx.beginPath(); ctx.arc(ex,ey,TILE*1.2,0,Math.PI*2); ctx.fill();
-
-  // Door
-  ctx.fillStyle='#1A3A1A';
-  roundRect(ctx,ex-16,ey-TILE*0.7,32,TILE*1.4,4); ctx.fill();
-  ctx.strokeStyle=`rgba(170,255,100,${0.6+0.4*pulse})`; ctx.lineWidth=2;
-  roundRect(ctx,ex-16,ey-TILE*0.7,32,TILE*1.4,4); ctx.stroke();
-
-  ctx.fillStyle=`rgba(255,255,80,${pulse})`;
-  ctx.font=`bold ${TILE*0.25}px monospace`; ctx.textAlign='center'; ctx.textBaseline='middle';
-  ctx.fillText('EXIT',ex,ey);
-  ctx.font=`${TILE*0.18}px monospace`;
-  ctx.fillStyle='#AAFFAA';
-  ctx.fillText('Pintu Keluar',ex,ey+TILE*0.55);
-}
-
-// ═══════════════════════════════════════════════════════════
-// FOG OF WAR
-// ═══════════════════════════════════════════════════════════
-function drawFog(ctx, px, py, radius) {
-  // Mask everything outside radius
-  ctx.save();
-  ctx.fillStyle='rgba(0,0,0,0.0)'; // transparent fill
-  ctx.globalCompositeOperation='source-over';
-
-  // Full dark overlay
-  ctx.fillStyle='rgba(0,0,0,1)';
-  ctx.fillRect(0,0,CANVAS_W,CANVAS_H);
-
-  // Cut out circle around player (torch effect)
-  ctx.globalCompositeOperation='destination-out';
-  const grd = ctx.createRadialGradient(px,py,radius*0.2,px,py,radius);
-  grd.addColorStop(0,'rgba(0,0,0,1)');
-  grd.addColorStop(0.6,'rgba(0,0,0,0.95)');
-  grd.addColorStop(0.85,'rgba(0,0,0,0.7)');
-  grd.addColorStop(1,'rgba(0,0,0,0)');
-  ctx.fillStyle=grd;
-  ctx.beginPath(); ctx.arc(px,py,radius,0,Math.PI*2); ctx.fill();
-
-  ctx.restore();
-
-  // Warm torch color overlay
-  ctx.save();
-  ctx.globalCompositeOperation='multiply';
-  const warmGrd = ctx.createRadialGradient(px,py,0,px,py,radius);
-  warmGrd.addColorStop(0,'rgba(220,170,80,0.25)');
-  warmGrd.addColorStop(0.5,'rgba(160,100,40,0.15)');
-  warmGrd.addColorStop(1,'rgba(0,0,0,0)');
-  ctx.fillStyle=warmGrd;
-  ctx.beginPath(); ctx.arc(px,py,radius,0,Math.PI*2); ctx.fill();
-  ctx.restore();
-}
-
-// ═══════════════════════════════════════════════════════════
-// HELPERS
-// ═══════════════════════════════════════════════════════════
-function roundRect(ctx, x, y, w, h, r) {
+// ═══════════════════════════════════════════════════════════════════
+// UTILS
+// ═══════════════════════════════════════════════════════════════════
+function rr(ctx, x,y,w,h,r){
   ctx.beginPath();
   ctx.moveTo(x+r,y);
   ctx.lineTo(x+w-r,y); ctx.quadraticCurveTo(x+w,y,x+w,y+r);
@@ -707,547 +259,887 @@ function roundRect(ctx, x, y, w, h, r) {
   ctx.lineTo(x,y+r); ctx.quadraticCurveTo(x,y,x+r,y);
   ctx.closePath();
 }
+const isWall = (tx,ty) => tx<0||ty<0||tx>=MW||ty>=MH || MAP[ty][tx]===T.WALL || MAP[ty][tx]===T.MOSS;
+const dist   = (a,b) => Math.hypot((a.x||a.tx*TILE+TILE/2)-(b.x||b.tx*TILE+TILE/2),(a.y||a.ty*TILE+TILE/2)-(b.y||b.ty*TILE+TILE/2));
+const getArea = (tx,ty) => ty<8 ? (tx<15?'Got Utara Barat':'Got Utara Timur') : ty>15 ? (tx<15?'Got Selatan Barat':'Got Selatan Timur') : tx<10?'Got Barat':tx>19?'Got Timur':'Got Tengah';
 
-function isWall(tx, ty) {
-  if(tx<0||ty<0||tx>=MAP_W||ty>=MAP_H) return true;
-  return MAP_DATA[ty][tx]===T.WALL || MAP_DATA[ty][tx]===T.WALL_MOSS;
+// ═══════════════════════════════════════════════════════════════════
+// DRAW TILE
+// ═══════════════════════════════════════════════════════════════════
+function drawTile(c, type, px, py){
+  const W=TILE,H=TILE;
+  switch(type){
+    case T.FLOOR:
+      c.fillStyle='#1A1208'; c.fillRect(px,py,W,H);
+      c.fillStyle='#1E150A';
+      c.fillRect(px+1,py+1,W/2-2,H/2-2); c.fillRect(px+W/2+1,py+H/2+1,W/2-2,H/2-2);
+      c.fillStyle='#181005';
+      c.fillRect(px+W/2+1,py+1,W/2-2,H/2-2); c.fillRect(px+1,py+H/2+1,W/2-2,H/2-2);
+      c.strokeStyle='#110E06'; c.lineWidth=0.4; c.strokeRect(px,py,W,H);
+      break;
+    case T.WALL: case T.MOSS:{
+      const wc = type===T.MOSS?'#1A2A10':'#2A1F0F';
+      c.fillStyle=wc; c.fillRect(px,py,W,H);
+      const bc = type===T.MOSS?'#253818':'#352515';
+      c.fillStyle=bc;
+      for(let r=0;r<3;r++){
+        const off=(r%2===0)?W/2:0;
+        for(let col=0;col<3;col++){
+          c.strokeStyle=type===T.MOSS?'#192210':'#1A1008'; c.lineWidth=0.4;
+          c.fillRect(px+off+col*W/2+1,py+r*H/3+1,W/2-2,H/3-2);
+          c.strokeRect(px+off+col*W/2+1,py+r*H/3+1,W/2-2,H/3-2);
+        }
+      }
+      c.fillStyle='#111008'; c.fillRect(px,py+H-4,W,4);
+      if(type===T.MOSS){
+        c.fillStyle='rgba(50,80,28,0.65)';
+        for(let m=0;m<4;m++) c.fillRect(px+m*12+2,py+H-10,9,6);
+      }
+      break;
+    }
+    case T.PIPEH:
+      c.fillStyle='#1A1208'; c.fillRect(px,py,W,H);
+      c.fillStyle='#3D5A3E'; c.fillRect(px,py+H*.3,W,H*.4);
+      c.fillStyle='#4A6E4B'; c.fillRect(px,py+H*.55,W,H*.08);
+      c.fillStyle='#2A3D2B'; c.fillRect(px,py+H*.3,W,H*.05);
+      for(let s=0;s<W;s+=14){c.fillStyle='#2A3D2B';c.fillRect(px+s,py+H*.3,1,H*.4);}
+      break;
+    case T.PIPEV:
+      c.fillStyle='#1A1208'; c.fillRect(px,py,W,H);
+      c.fillStyle='#3D5A3E'; c.fillRect(px+W*.3,py,W*.4,H);
+      c.fillStyle='#4A6E4B'; c.fillRect(px+W*.55,py,W*.08,H);
+      c.fillStyle='#2A3D2B'; c.fillRect(px+W*.3,py,W*.05,H);
+      c.fillStyle='rgba(20,60,90,.7)';
+      c.beginPath();c.ellipse(px+W*.7,py+H*.3,3,5,0,0,Math.PI*2);c.fill();
+      break;
+    case T.PUDDLE:
+      c.fillStyle='#1A1208'; c.fillRect(px,py,W,H);
+      c.fillStyle='rgba(8,26,42,.92)';
+      c.beginPath();c.ellipse(px+W/2,py+H/2,W*.44,H*.34,0,0,Math.PI*2);c.fill();
+      c.fillStyle='rgba(22,60,90,.45)';
+      c.beginPath();c.ellipse(px+W*.58,py+H*.44,W*.16,H*.11,0,0,Math.PI*2);c.fill();
+      break;
+    default:
+      c.fillStyle='#1A1208'; c.fillRect(px,py,W,H);
+  }
 }
 
-function isNearby(player, obj, range) {
-  const dx = player.x - (obj.x || obj.tx*TILE+TILE/2);
-  const dy = player.y - (obj.y || obj.ty*TILE+TILE/2);
-  return Math.sqrt(dx*dx+dy*dy) < range;
+// ═══════════════════════════════════════════════════════════════════
+// DRAW PLAYER
+// ═══════════════════════════════════════════════════════════════════
+function drawPlayer(c, px, py, dir, moving, t){
+  const bob = moving ? Math.sin(t*.18)*3 : 0;
+  const y=py+bob, s=TILE*.9;
+  // shadow
+  c.fillStyle='rgba(0,0,0,.4)';
+  c.beginPath();c.ellipse(px,py+s*.42,s*.28,s*.1,0,0,Math.PI*2);c.fill();
+  // tail
+  c.strokeStyle='#B08858'; c.lineWidth=3; c.lineCap='round';
+  c.beginPath();
+  if(dir==='right'){c.moveTo(px-s*.2,y+s*.05);c.bezierCurveTo(px-s*.5,y+s*.2,px-s*.7,y,px-s*.6,y-s*.2);}
+  else if(dir==='left'){c.moveTo(px+s*.2,y+s*.05);c.bezierCurveTo(px+s*.5,y+s*.2,px+s*.7,y,px+s*.6,y-s*.2);}
+  else{c.moveTo(px+s*.18,y+s*.1);c.bezierCurveTo(px+s*.5,y+s*.25,px+s*.6,y,px+s*.5,y-s*.2);}
+  c.stroke();
+  // body + jacket
+  c.fillStyle='#C8A878'; c.beginPath();c.ellipse(px,y,s*.22,s*.28,0,0,Math.PI*2);c.fill();
+  c.fillStyle='#1A3A6A'; c.beginPath();c.ellipse(px,y,s*.2,s*.26,0,0,Math.PI*2);c.fill();
+  c.fillStyle='#C8A878'; c.beginPath();c.ellipse(px,y-s*.08,s*.1,s*.14,0,0,Math.PI*2);c.fill();
+  // head
+  c.fillStyle='#C8A878'; c.beginPath();c.arc(px,y-s*.3,s*.17,0,Math.PI*2);c.fill();
+  // ears
+  for(const [ex,ey] of [[-s*.12,-s*.44],[s*.12,-s*.44]]){
+    c.fillStyle='#C8A878'; c.beginPath();c.arc(px+ex,y+ey,s*.08,0,Math.PI*2);c.fill();
+    c.fillStyle='#E8A0A0'; c.beginPath();c.arc(px+ex,y+ey,s*.05,0,Math.PI*2);c.fill();
+  }
+  if(dir!=='up'){
+    c.fillStyle='#111';
+    c.beginPath();c.arc(px-s*.07,y-s*.31,s*.034,0,Math.PI*2);c.fill();
+    c.beginPath();c.arc(px+s*.07,y-s*.31,s*.034,0,Math.PI*2);c.fill();
+    c.fillStyle='#fff';
+    c.beginPath();c.arc(px-s*.06,y-s*.32,s*.013,0,Math.PI*2);c.fill();
+    c.beginPath();c.arc(px+s*.08,y-s*.32,s*.013,0,Math.PI*2);c.fill();
+    c.fillStyle='#FF8888'; c.beginPath();c.arc(px,y-s*.245,s*.025,0,Math.PI*2);c.fill();
+    c.strokeStyle='#999'; c.lineWidth=.8;
+    for(const [wx,wy] of [[-s*.22,0],[-s*.22,s*.04],[s*.22,0],[s*.22,s*.04]]){
+      c.beginPath();c.moveTo(px,y-s*.245);c.lineTo(px+wx,y-s*.245+wy);c.stroke();
+    }
+  }
+  // arrow
+  c.fillStyle='#FFD700'; c.font=`${TILE*.35}px monospace`;
+  c.textAlign='center'; c.textBaseline='middle';
+  c.fillText('▼',px,y-s*.65);
 }
 
-function getArea(tx, ty) {
-  if(ty < 8) return tx < 15 ? 'Got Utara Barat' : 'Got Utara Timur';
-  if(ty > 15) return tx < 15 ? 'Got Selatan Barat' : 'Got Selatan Timur';
-  return tx < 10 ? 'Got Barat' : tx > 19 ? 'Got Timur' : 'Got Tengah';
-}
+// ═══════════════════════════════════════════════════════════════════
+// DRAW NPC
+// ═══════════════════════════════════════════════════════════════════
+function drawNPC(c, npc, camX, camY, t){
+  const px=npc.x-camX, py=npc.y-camY;
+  const s=TILE*.9, bob=Math.sin(t*.05+npc.id.length)*2;
+  const nearby = dist(G.player,npc)<TILE*2.5 && !G.dialogOpen;
 
-// ═══════════════════════════════════════════════════════════
-// CAMERA
-// ═══════════════════════════════════════════════════════════
-function updateCamera() {
-  const targetX = state.player.x - CANVAS_W/2;
-  const targetY = state.player.y - CANVAS_H/2;
-  const maxX = MAP_W*TILE - CANVAS_W;
-  const maxY = MAP_H*TILE - CANVAS_H;
-  state.camera.x += (Math.max(0,Math.min(maxX,targetX)) - state.camera.x)*0.12;
-  state.camera.y += (Math.max(0,Math.min(maxY,targetY)) - state.camera.y)*0.12;
-}
-
-// ═══════════════════════════════════════════════════════════
-// MOVEMENT
-// ═══════════════════════════════════════════════════════════
-function movePlayer() {
-  if(state.dialogOpen||state.paused) return;
-  const {keys,player} = state;
-  let dx=0, dy=0;
-  if(keys['ArrowLeft']||keys['a']||keys['A']) { dx=-1; player.dir='left'; }
-  if(keys['ArrowRight']||keys['d']||keys['D']) { dx=1; player.dir='right'; }
-  if(keys['ArrowUp']||keys['w']||keys['W']) { dy=-1; player.dir='up'; }
-  if(keys['ArrowDown']||keys['s']||keys['S']) { dy=1; player.dir='down'; }
-
-  if(dx&&dy) { dx*=0.707; dy*=0.707; }
-
-  const spd = player.speed;
-  const nx = player.x + dx*spd;
-  const ny = player.y + dy*spd;
-
-  // Collision: check corners of player hitbox
-  const hw = TILE*0.28;
-  function canMove(x,y) {
-    return !isWall(Math.floor((x-hw)/TILE),Math.floor((y-hw)/TILE)) &&
-           !isWall(Math.floor((x+hw)/TILE),Math.floor((y-hw)/TILE)) &&
-           !isWall(Math.floor((x-hw)/TILE),Math.floor((y+hw)/TILE)) &&
-           !isWall(Math.floor((x+hw)/TILE),Math.floor((y+hw)/TILE));
+  // ── Draw body by id ────────────────────────────────────────
+  if(npc.id==='pak_koak'){
+    c.fillStyle='rgba(0,0,0,.35)';c.beginPath();c.ellipse(px,py+s*.45,s*.3,s*.1,0,0,Math.PI*2);c.fill();
+    c.fillStyle='#4A7A30';c.beginPath();c.ellipse(px,py+bob,s*.25,s*.32,0,0,Math.PI*2);c.fill();
+    c.fillStyle='#7AB850';c.beginPath();c.ellipse(px,py+s*.1+bob,s*.18,s*.22,0,0,Math.PI*2);c.fill();
+    c.fillStyle='#5A8A3A';c.beginPath();c.arc(px,py-s*.18+bob,s*.2,0,Math.PI*2);c.fill();
+    c.fillStyle='#8AC040';
+    c.beginPath();c.ellipse(px-s*.1,py-s*.25+bob,s*.1,s*.09,0,0,Math.PI*2);c.fill();
+    c.beginPath();c.ellipse(px+s*.1,py-s*.25+bob,s*.1,s*.09,0,0,Math.PI*2);c.fill();
+    c.fillStyle='#111';
+    c.beginPath();c.arc(px-s*.1,py-s*.25+bob,s*.05,0,Math.PI*2);c.fill();
+    c.beginPath();c.arc(px+s*.1,py-s*.25+bob,s*.05,0,Math.PI*2);c.fill();
+    c.fillStyle='#2A1A08';
+    c.beginPath();c.ellipse(px,py-s*.35+bob,s*.22,s*.06,0,0,Math.PI*2);c.fill();
+    c.fillRect(px-s*.12,py-s*.55+bob,s*.24,s*.2);
+    c.beginPath();c.ellipse(px,py-s*.55+bob,s*.16,s*.05,0,0,Math.PI*2);c.fill();
+    c.fillStyle='#4A7A30';
+    c.beginPath();c.ellipse(px-s*.14,py+s*.45+bob,s*.12,s*.07,0,0,Math.PI*2);c.fill();
+    c.beginPath();c.ellipse(px+s*.14,py+s*.45+bob,s*.12,s*.07,0,0,Math.PI*2);c.fill();
+  }
+  else if(npc.id==='kiki'){
+    c.fillStyle='rgba(0,0,0,.3)';c.beginPath();c.ellipse(px,py+s*.42,s*.22,s*.08,0,0,Math.PI*2);c.fill();
+    c.fillStyle='#FF9AB0';c.beginPath();c.ellipse(px,py+s*.05+bob,s*.18,s*.28,0,0,Math.PI*2);c.fill();
+    c.fillStyle='#FF6B8A';c.beginPath();c.ellipse(px,py+s*.25+bob,s*.22,s*.12,0,0,Math.PI*2);c.fill();
+    c.fillStyle='#D4B896';c.beginPath();c.arc(px,py-s*.2+bob,s*.17,0,Math.PI*2);c.fill();
+    c.beginPath();c.arc(px-s*.11,py-s*.33+bob,s*.07,0,Math.PI*2);c.fill();
+    c.beginPath();c.arc(px+s*.11,py-s*.33+bob,s*.07,0,Math.PI*2);c.fill();
+    c.fillStyle='#E8A0B0';
+    c.beginPath();c.arc(px-s*.11,py-s*.33+bob,s*.04,0,Math.PI*2);c.fill();
+    c.beginPath();c.arc(px+s*.11,py-s*.33+bob,s*.04,0,Math.PI*2);c.fill();
+    c.fillStyle='#111';
+    c.beginPath();c.arc(px-s*.06,py-s*.22+bob,s*.032,0,Math.PI*2);c.fill();
+    c.beginPath();c.arc(px+s*.06,py-s*.22+bob,s*.032,0,Math.PI*2);c.fill();
+    c.fillStyle='rgba(255,180,200,.65)';
+    c.beginPath();c.ellipse(px-s*.1,py-s*.12+bob,s*.06,s*.03,0,0,Math.PI*2);c.fill();
+    c.beginPath();c.ellipse(px+s*.1,py-s*.12+bob,s*.06,s*.03,0,0,Math.PI*2);c.fill();
+    c.fillStyle='#FF4488';c.beginPath();c.ellipse(px+s*.1,py-s*.37+bob,s*.1,s*.05,-0.5,0,Math.PI*2);c.fill();
+    c.strokeStyle='#C4A080';c.lineWidth=2;c.beginPath();
+    c.moveTo(px+s*.12,py+s*.1+bob);c.bezierCurveTo(px+s*.3,py+s*.25+bob,px+s*.4,py+s*.1+bob,px+s*.35,py-s*.05+bob);
+    c.stroke();
+  }
+  else if(npc.id==='blirik'){
+    c.fillStyle='rgba(0,0,0,.35)';c.beginPath();c.ellipse(px,py+s*.42,s*.22,s*.08,0,0,Math.PI*2);c.fill();
+    c.fillStyle='#2A1A08';c.beginPath();c.ellipse(px,py+bob,s*.2,s*.32,0,0,Math.PI*2);c.fill();
+    c.fillStyle='#3D2810';
+    c.beginPath();c.ellipse(px-s*.08,py+s*.02+bob,s*.14,s*.28,-0.1,0,Math.PI*2);c.fill();
+    c.beginPath();c.ellipse(px+s*.08,py+s*.02+bob,s*.14,s*.28,0.1,0,Math.PI*2);c.fill();
+    c.fillStyle='#3D2810';c.beginPath();c.arc(px,py-s*.22+bob,s*.12,0,Math.PI*2);c.fill();
+    c.fillStyle='#CC2200';
+    c.beginPath();c.arc(px-s*.06,py-s*.26+bob,s*.04,0,Math.PI*2);c.fill();
+    c.beginPath();c.arc(px+s*.06,py-s*.26+bob,s*.04,0,Math.PI*2);c.fill();
+    c.strokeStyle='#5A3A18';c.lineWidth=1.5;
+    for(const [ax,ay,ex,ey] of [[-s*.04,s*.12,-s*.2,s*.02],[-s*.04,s*.12,-s*.2,s*.22],[s*.04,s*.12,s*.2,s*.02],[s*.04,s*.12,s*.2,s*.22]]){
+      c.beginPath();c.moveTo(px+ax,py-s*.22-ay+bob);c.lineTo(px+ex,py-s*.22-ey+bob);c.stroke();
+    }
+    for(const [lx,ly] of [[-s*.18,-s*.1],[-s*.18,s*.05],[-s*.18,s*.2],[s*.18,-s*.1],[s*.18,s*.05],[s*.18,s*.2]]){
+      c.strokeStyle='#2A1A08';c.lineWidth=1.5;
+      c.beginPath();c.moveTo(px+lx*.5,py+ly+bob);c.lineTo(px+lx,py+ly+s*.12+bob);c.stroke();
+    }
+    c.fillStyle='#FF6600';
+    rr(c,px-s*.1,py-s*.08+bob,s*.2,s*.1,3);c.fill();
+    c.fillStyle='#fff';c.font=`bold ${TILE*.13}px monospace`;
+    c.textAlign='center';c.textBaseline='middle';
+    c.fillText('JAGA',px,py-s*.03+bob);
+  }
+  else if(npc.id==='nyonya_siput'){
+    c.fillStyle='rgba(0,0,0,.3)';c.beginPath();c.ellipse(px,py+s*.42,s*.28,s*.1,0,0,Math.PI*2);c.fill();
+    for(const [r2,cl] of [[s*.35,'#C4883A'],[s*.28,'#D49A4A'],[s*.21,'#C4883A'],[s*.14,'#B87830']]){
+      c.fillStyle=cl;c.beginPath();c.arc(px+s*.08,py-s*.1+bob,r2,0,Math.PI*2);c.fill();
+    }
+    c.fillStyle='rgba(232,184,96,.4)';c.beginPath();c.ellipse(px,py-s*.22+bob,s*.12,s*.06,-0.5,0,Math.PI*2);c.fill();
+    c.fillStyle='#D4AA70';c.beginPath();c.ellipse(px-s*.05,py+s*.2+bob,s*.32,s*.16,0,0,Math.PI*2);c.fill();
+    c.fillStyle='#D4AA70';c.beginPath();c.arc(px-s*.28,py+s*.05+bob,s*.14,0,Math.PI*2);c.fill();
+    for(const [tx2,ofs] of [[-s*.04,0],[s*.04,0]]){
+      c.strokeStyle='#C4A060';c.lineWidth=2.5;
+      c.beginPath();c.moveTo(px-s*.28+tx2,py+s*.05+bob);c.lineTo(px-s*.28+tx2,py-s*.05+bob);c.stroke();
+      c.fillStyle='#111';c.beginPath();c.arc(px-s*.28+tx2,py-s*.07+bob,s*.025,0,Math.PI*2);c.fill();
+    }
+    c.fillStyle='#FF6B9D';c.beginPath();c.arc(px+s*.08,py-s*.32+bob,s*.05,0,Math.PI*2);c.fill();
+    c.fillStyle='#FFB0D0';
+    for(let a=0;a<6;a++){c.beginPath();c.arc(px+s*.08+Math.cos(a*Math.PI/3)*s*.08,py-s*.32+bob+Math.sin(a*Math.PI/3)*s*.08,s*.04,0,Math.PI*2);c.fill();}
+  }
+  else if(npc.id==='petugas'){
+    c.fillStyle='rgba(0,0,0,.4)';c.beginPath();c.ellipse(px,py+s*.42,s*.25,s*.09,0,0,Math.PI*2);c.fill();
+    c.fillStyle='#2A4A1A';c.beginPath();c.ellipse(px,py+s*.2+bob,s*.22,s*.22,0,0,Math.PI*2);c.fill();
+    c.fillStyle='#D4A800';c.beginPath();c.ellipse(px,py-s*.05+bob,s*.24,s*.28,0,0,Math.PI*2);c.fill();
+    c.fillStyle='rgba(180,180,180,.7)';
+    c.beginPath();c.ellipse(px,py-s*.1+bob,s*.22,s*.025,0,0,Math.PI*2);c.fill();
+    c.beginPath();c.ellipse(px,py+s*.05+bob,s*.22,s*.025,0,0,Math.PI*2);c.fill();
+    c.fillStyle='#FFDD00';c.beginPath();c.arc(px,py-s*.32+bob,s*.18,0,Math.PI*2);c.fill();
+    c.beginPath();c.ellipse(px,py-s*.4+bob,s*.28,s*.08,0,0,Math.PI*2);c.fill();
+    c.fillStyle='rgba(26,42,58,.9)';c.beginPath();c.ellipse(px,py-s*.33+bob,s*.24,s*.1,0,0,Math.PI*2);c.fill();
+    c.strokeStyle='#8B6914';c.lineWidth=3;
+    c.beginPath();c.moveTo(px+s*.18,py-s*.05+bob);c.lineTo(px+s*.42,py+s*.42+bob);c.stroke();
+    c.fillStyle='#5A3A10';c.beginPath();c.ellipse(px+s*.45,py+s*.48+bob,s*.1,s*.06,.3,0,Math.PI*2);c.fill();
+    // Alert indicator
+    if(npc.alertMode){
+      c.fillStyle='#FF2200';c.font=`bold ${TILE*.5}px monospace`;
+      c.textAlign='center';c.textBaseline='middle';
+      c.fillText('!',px,py-s*.9+bob);
+    }
   }
 
-  if(canMove(nx,player.y)) player.x=nx;
-  if(canMove(player.x,ny)) player.y=ny;
-  player.moving = (dx!==0||dy!==0);
+  // Interaction indicator
+  if(nearby && npc.id!=='petugas'){
+    const done = npc.fsmState==='DONE'||npc.fsmState==='DONE2'||npc.fsmState==='DONE3';
+    const ind = done?'•':'!';
+    const bg  = done?'#3A3A3A':'#FFD700';
+    const fc  = done?'#666':'#1A0A00';
+    c.fillStyle=bg; rr(c,px-10,py-s*.65-20,20,22,4); c.fill();
+    c.fillStyle=fc; c.font=`bold ${TILE*.36}px monospace`;
+    c.textAlign='center'; c.textBaseline='middle';
+    c.fillText(ind,px,py-s*.65-9);
+  }
+
+  // Name tag
+  const nw = npc.name.length*5.8+14;
+  c.fillStyle='rgba(6,18,6,.87)';
+  rr(c,px-nw/2,py+s*.5,nw,15,4); c.fill();
+  c.fillStyle = npc.id==='blirik'||npc.id==='petugas'?'#FFAA44':npc.id==='kiki'?'#FFAACC':'#AAFFAA';
+  c.font=`${TILE*.19}px monospace`;
+  c.textAlign='center'; c.textBaseline='middle';
+  c.fillText(npc.name,px,py+s*.5+7.5);
 }
 
-// ═══════════════════════════════════════════════════════════
-// NPC AI — FSM
-// ═══════════════════════════════════════════════════════════
-function updateNPCs(t) {
-  state.npcs.forEach(npc => {
-    // Wandering movement
-    if(npc.state==='WANDERING' || npc.wanderRange>0 && npc.state!=='PATROL' && npc.state!=='ALERT') {
-      npc.wanderTimer = (npc.wanderTimer||0)+1;
-      if(npc.wanderTimer > 90) {
-        npc.wanderTimer=0;
+// ═══════════════════════════════════════════════════════════════════
+// DRAW ITEM
+// ═══════════════════════════════════════════════════════════════════
+const imgCache = {};
+function getImg(src){
+  if(!imgCache[src]){const i=new Image();i.src=src;imgCache[src]=i;}
+  return imgCache[src];
+}
+
+function drawItem(c, item, t){
+  if(item.collected) return;
+  // Only show if reachable (missionStep >= requiredStep or requiredStep===-1)
+  if(item.requiredStep>0 && G.missionStep < item.requiredStep) return;
+  const px = item.tx*TILE+TILE/2-G.camera.x;
+  const py = item.ty*TILE+TILE/2-G.camera.y;
+  const bob = Math.sin(t*.05+item.tx)*4;
+  // Glow
+  const grd=c.createRadialGradient(px,py,0,px,py,24);
+  grd.addColorStop(0,'rgba(255,215,0,.22)');
+  grd.addColorStop(1,'rgba(255,215,0,0)');
+  c.fillStyle=grd;
+  c.beginPath();c.ellipse(px,py+6,24,9,0,0,Math.PI*2);c.fill();
+  // Image
+  const img=getImg(item.img);
+  if(img.complete && img.naturalWidth>0){
+    c.save();
+    c.translate(px,py+bob);
+    c.drawImage(img,-18,-18,36,36);
+    c.restore();
+  } else {
+    // fallback
+    c.fillStyle='#FFD700';
+    c.beginPath();c.arc(px,py+bob,12,0,Math.PI*2);c.fill();
+  }
+  // Label
+  const lw=item.name.length*5.2+12;
+  c.fillStyle='rgba(6,6,0,.88)';
+  rr(c,px-lw/2,py+bob+16,lw,14,3);c.fill();
+  c.fillStyle='#CCAA55';c.font=`${TILE*.18}px monospace`;
+  c.textAlign='center';c.textBaseline='middle';
+  c.fillText(item.name,px,py+bob+23);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// DRAW TRAP
+// ═══════════════════════════════════════════════════════════════════
+function drawTrap(c, px, py, t){
+  // Red danger pulse
+  const pulse=.5+Math.sin(t*.1)*.5;
+  c.fillStyle=`rgba(255,0,0,${.08*pulse})`;
+  c.beginPath();c.ellipse(px,py,22,14,0,0,Math.PI*2);c.fill();
+  // Metal base
+  c.fillStyle='#7A5810';
+  rr(c,px-15,py-5,30,10,2);c.fill();
+  c.strokeStyle='#4A3000';c.lineWidth=1.5;
+  rr(c,px-15,py-5,30,10,2);c.stroke();
+  // Spring arm
+  c.strokeStyle='#C0A020';c.lineWidth=2;
+  c.beginPath();c.moveTo(px-10,py-5);c.lineTo(px,py-14);c.lineTo(px+10,py-5);c.stroke();
+  // Danger !
+  c.fillStyle=`rgba(255,60,60,${pulse})`;
+  c.font=`bold ${TILE*.28}px monospace`;
+  c.textAlign='center';c.textBaseline='middle';
+  c.fillText('!',px,py-22);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// DRAW EXIT
+// ═══════════════════════════════════════════════════════════════════
+function drawExit(c, t){
+  const ex=EXIT.tx*TILE+TILE/2-G.camera.x;
+  const ey=EXIT.ty*TILE+TILE/2-G.camera.y;
+  const pulse=.6+Math.sin(t*.06)*.4;
+  // Glow
+  const grd=c.createRadialGradient(ex,ey,0,ex,ey,TILE*1.2);
+  grd.addColorStop(0,`rgba(255,255,80,${.35*pulse})`);
+  grd.addColorStop(1,'rgba(255,255,0,0)');
+  c.fillStyle=grd;
+  c.beginPath();c.arc(ex,ey,TILE*1.2,0,Math.PI*2);c.fill();
+  // Door
+  c.fillStyle='#1A3A1A';
+  rr(c,ex-16,ey-TILE*.7,32,TILE*1.4,4);c.fill();
+  c.strokeStyle=`rgba(170,255,100,${.5+.5*pulse})`;c.lineWidth=2;
+  rr(c,ex-16,ey-TILE*.7,32,TILE*1.4,4);c.stroke();
+  c.fillStyle=G.missionStep>=EXIT.requiredStep?`rgba(255,255,80,${pulse})`:'rgba(100,100,100,.5)';
+  c.font=`bold ${TILE*.22}px monospace`;c.textAlign='center';c.textBaseline='middle';
+  c.fillText('EXIT',ex,ey);
+  c.font=`${TILE*.16}px monospace`;
+  c.fillStyle=G.missionStep>=EXIT.requiredStep?'#AAFFAA':'#444';
+  c.fillText(G.missionStep>=EXIT.requiredStep?'Pintu Keluar':'Terkunci',ex,ey+TILE*.5);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// FOG OF WAR
+// ═══════════════════════════════════════════════════════════════════
+function drawFog(c, px, py, radius){
+  const fc=document.createElement('canvas');
+  fc.width=CW; fc.height=CH;
+  const fx=fc.getContext('2d');
+  fx.fillStyle='rgba(0,0,0,1)';
+  fx.fillRect(0,0,CW,CH);
+  fx.globalCompositeOperation='destination-out';
+  const grd=fx.createRadialGradient(px,py,radius*.18,px,py,radius);
+  grd.addColorStop(0,'rgba(0,0,0,1)');
+  grd.addColorStop(.65,'rgba(0,0,0,.96)');
+  grd.addColorStop(.88,'rgba(0,0,0,.6)');
+  grd.addColorStop(1,'rgba(0,0,0,0)');
+  fx.fillStyle=grd;
+  fx.beginPath();fx.arc(px,py,radius,0,Math.PI*2);fx.fill();
+  c.drawImage(fc,0,0);
+  // warm torch tint
+  c.save();
+  c.globalCompositeOperation='multiply';
+  const wg=c.createRadialGradient(px,py,0,px,py,radius);
+  wg.addColorStop(0,'rgba(215,160,70,.28)');
+  wg.addColorStop(.6,'rgba(150,90,35,.14)');
+  wg.addColorStop(1,'rgba(0,0,0,0)');
+  c.fillStyle=wg;
+  c.beginPath();c.arc(px,py,radius,0,Math.PI*2);c.fill();
+  c.restore();
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// CAMERA
+// ═══════════════════════════════════════════════════════════════════
+function updateCamera(){
+  const tx=G.player.x-CW/2, ty=G.player.y-CH/2;
+  const maxX=MW*TILE-CW, maxY=MH*TILE-CH;
+  G.camera.x += (Math.max(0,Math.min(maxX,tx))-G.camera.x)*.12;
+  G.camera.y += (Math.max(0,Math.min(maxY,ty))-G.camera.y)*.12;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// MOVEMENT
+// ═══════════════════════════════════════════════════════════════════
+function movePlayer(){
+  if(G.dialogOpen||G.paused) return;
+  const {keys,player}=G;
+  let dx=0,dy=0;
+  if(keys['ArrowLeft']||keys['a']||keys['A']){dx=-1;player.dir='left';}
+  if(keys['ArrowRight']||keys['d']||keys['D']){dx=1;player.dir='right';}
+  if(keys['ArrowUp']||keys['w']||keys['W']){dy=-1;player.dir='up';}
+  if(keys['ArrowDown']||keys['s']||keys['S']){dy=1;player.dir='down';}
+  if(dx&&dy){dx*=.707;dy*=.707;}
+  const spd=player.speed;
+  const hw=TILE*.27;
+  function ok(x,y){
+    return !isWall(Math.floor((x-hw)/TILE),Math.floor((y-hw)/TILE))&&
+           !isWall(Math.floor((x+hw)/TILE),Math.floor((y-hw)/TILE))&&
+           !isWall(Math.floor((x-hw)/TILE),Math.floor((y+hw)/TILE))&&
+           !isWall(Math.floor((x+hw)/TILE),Math.floor((y+hw)/TILE));
+  }
+  if(ok(player.x+dx*spd,player.y)) player.x+=dx*spd;
+  if(ok(player.x,player.y+dy*spd)) player.y+=dy*spd;
+  player.moving=(dx!==0||dy!==0);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// NPC FSM UPDATE
+// ═══════════════════════════════════════════════════════════════════
+function updateNPCs(){
+  G.npcs.forEach(npc=>{
+    // Patrol
+    if(npc.fsmState==='PATROL'||npc.fsmState==='ALERT'||npc.id==='petugas'||npc.id==='blirik'){
+      npc.patrolTimer++;
+      const spd = npc.id==='petugas' ? (npc.alertMode?20:40) : 55;
+      if(npc.patrolTimer>=spd){
+        npc.patrolTimer=0;
+        if(npc.alertMode){
+          // Chase player
+          const dx=G.player.x-npc.x, dy=G.player.y-npc.y;
+          const d=Math.hypot(dx,dy);
+          if(d>TILE*.5){npc.x+=dx/d*TILE*.8;npc.y+=dy/d*TILE*.8;}
+          if(d<TILE*.7){gameOver('Kamu tertangkap Petugas Got!😱');return;}
+          if(d>TILE*7){npc.alertMode=false;} // lost
+        } else {
+          // Follow patrol path
+          if(npc.patrolPath&&npc.patrolPath.length>0){
+            npc.patrolIdx=(npc.patrolIdx+1)%npc.patrolPath.length;
+            const tg=npc.patrolPath[npc.patrolIdx];
+            npc.x=tg.tx*TILE+TILE/2; npc.y=tg.ty*TILE+TILE/2;
+          }
+        }
+      }
+      // Detection
+      const d=dist(G.player,npc);
+      if(npc.id==='petugas'&&!npc.alertMode&&d<TILE*3){
+        npc.alertMode=true;
+        showNotif('','⚠️ TERDETEKSI!','Petugas melihatmu! Cepat kabur!');
+        document.getElementById('ab').classList.add('on');
+        G.alertBorderOn=true;
+        setTimeout(()=>{document.getElementById('ab').classList.remove('on');G.alertBorderOn=false;},4000);
+      }
+    }
+
+    // Wandering
+    if(npc.wanderRange>0 && npc.id!=='blirik' && npc.id!=='petugas'){
+      npc.wTimer=(npc.wTimer||0)+1;
+      if(npc.wTimer>100){
+        npc.wTimer=0;
         const dirs=[{dx:0,dy:0},{dx:0,dy:0},{dx:TILE,dy:0},{dx:-TILE,dy:0},{dx:0,dy:TILE},{dx:0,dy:-TILE}];
-        const d=dirs[Math.floor(Math.random()*dirs.length)];
-        const nx=(npc.x||npc.tx*TILE+TILE/2)+d.dx;
-        const ny=(npc.y||npc.ty*TILE+TILE/2)+d.dy;
+        const d2=dirs[Math.floor(Math.random()*dirs.length)];
+        const nx=npc.x+d2.dx, ny=npc.y+d2.dy;
         const ntx=Math.floor(nx/TILE), nty=Math.floor(ny/TILE);
-        const originTx=npc.originTx||npc.tx, originTy=npc.originTy||npc.ty;
-        if(!isWall(ntx,nty) &&
-           Math.abs(ntx-originTx)<=npc.wanderRange &&
-           Math.abs(nty-originTy)<=npc.wanderRange) {
+        if(!isWall(ntx,nty)&&Math.abs(ntx-npc.ox)<=npc.wanderRange&&Math.abs(nty-npc.oy)<=npc.wanderRange){
           npc.x=nx; npc.y=ny;
         }
       }
     }
 
-    // Patrol movement
-    if(npc.state==='PATROL'||npc.state==='ALERT') {
-      npc.patrolTimer=(npc.patrolTimer||0)+1;
-      if(npc.patrolTimer>50) {
-        npc.patrolTimer=0;
-        if(npc.state==='ALERT') {
-          // move toward player
-          const dx=state.player.x-npc.x, dy=state.player.y-npc.y;
-          const dist=Math.sqrt(dx*dx+dy*dy);
-          if(dist>TILE*0.5) { npc.x+=dx/dist*TILE*0.5; npc.y+=dy/dist*TILE*0.5; }
-          if(dist>TILE*5) { npc.state='PATROL'; } // lost player
-          // caught!
-          if(dist<TILE*0.8) { gameOver('Kamu tertangkap Petugas Got!'); }
-        } else {
-          npc.patrolIdx=(npc.patrolIdx+1)%npc.patrolPath.length;
-          const target=npc.patrolPath[npc.patrolIdx];
-          npc.x=target.tx*TILE+TILE/2; npc.y=target.ty*TILE+TILE/2;
-        }
-      }
-      // Detection radius
-      const dx=state.player.x-npc.x, dy=state.player.y-npc.y;
-      const dist=Math.sqrt(dx*dx+dy*dy);
-      if(dist<TILE*2.5 && npc.id==='petugas_got') {
-        if(npc.state==='PATROL') { npc.state='ALERT'; showNotif('','Kamu terdeteksi Petugas!','Segera bersembunyi!'); }
-      }
+    // Sync FSM state based on mission progress (auto-advance NPC state)
+    if(npc.id==='pak_koak'){
+      if(G.missionStep===0) npc.fsmState='WAITING';
+      if(G.missionStep>=1) npc.fsmState='DONE';
+    }
+    if(npc.id==='kiki'){
+      if(G.missionStep===1) npc.fsmState='WANDERING';
+      if(G.missionStep>=2) npc.fsmState='DONE2';
+    }
+    if(npc.id==='nyonya_siput'){
+      if(G.missionStep===2||G.missionStep===3) npc.fsmState='WAITING';
+      if(G.missionStep>=4) npc.fsmState='DONE3';
     }
   });
 }
 
-// ═══════════════════════════════════════════════════════════
-// INTERACTIONS
-// ═══════════════════════════════════════════════════════════
-function interact() {
-  if(state.dialogOpen||state.paused) return;
-
-  // Check NPC nearby
-  for(const npc of state.npcs) {
-    if(isNearby(state.player, npc, TILE*2.2)) {
-      openDialog(npc);
-      return;
+// ═══════════════════════════════════════════════════════════════════
+// INTERACTION
+// ═══════════════════════════════════════════════════════════════════
+function interact(){
+  if(G.dialogOpen||G.paused||!G.running) return;
+  // NPC check
+  for(const npc of G.npcs){
+    if(dist(G.player,npc)<TILE*2.4&&npc.id!=='petugas'){
+      openDialog(npc); return;
     }
   }
-
-  // Check item nearby
-  for(const item of state.itemPositions) {
-    if(!item.collected && isNearby(state.player,
-      {x:item.tx*TILE+TILE/2, y:item.ty*TILE+TILE/2}, TILE*1.5)) {
-      collectItem(item);
-      return;
+  // Item check
+  for(const item of G.items){
+    if(!item.collected && dist(G.player,{x:item.tx*TILE+TILE/2,y:item.ty*TILE+TILE/2})<TILE*1.5){
+      // Check if reachable
+      if(item.requiredStep>0 && G.missionStep<item.requiredStep){
+        showNotif('','Item ini belum bisa diambil!','Selesaikan misi sebelumnya dulu.');
+        return;
+      }
+      collectItem(item); return;
     }
   }
-
-  // Check exit
-  if(isNearby(state.player,
-    {x:state.exitPos.tx*TILE+TILE/2, y:state.exitPos.ty*TILE+TILE/2}, TILE*1.8)) {
-    if(state.inventory.includes('item_kunci')) {
+  // Exit check
+  if(dist(G.player,{x:EXIT.tx*TILE+TILE/2,y:EXIT.ty*TILE+TILE/2})<TILE*1.8){
+    if(G.missionStep>=EXIT.requiredStep){
       winGame();
     } else {
-      showNotif('','Pintu terkunci!','Kamu perlu kunci untuk membuka lorong keluar.');
+      showNotif('','Pintu Terkunci!🔒','Kamu perlu kunci dari Nyonya Siput dulu!');
     }
   }
 }
 
-function collectItem(item) {
+function collectItem(item){
   item.collected=true;
-  state.inventory.push(item.id);
-  updateInventoryUI();
-  showNotif(item.id, 'Item Ditemukan!', item.name);
+  G.inventory.push(item.id);
+  updateInvUI();
+  showNotif(item.img,'Item Ditemukan! ✅',item.name);
+  // Auto advance mission step for item pickup
+  if(item.id==='item_makanan' && G.missionStep===0){
+    // just collected, now go give to pak koak — step stays 0
+  }
+  if(item.id==='item_papan_kayu' && G.missionStep===2){
+    G.missionStep=3;
+    updateMissionUI();
+  }
+  updateHUD();
 }
 
-function openDialog(npc) {
-  state.currentNPC=npc;
-  const dialogState = npc.state==='PATROL'||npc.state==='ALERT' ? 'BLOCK' : npc.state;
-  const dialog = npc.dialogs[dialogState] || npc.dialogs[Object.keys(npc.dialogs)[0]];
-  showDialog(npc, dialog);
+// ═══════════════════════════════════════════════════════════════════
+// DIALOG
+// ═══════════════════════════════════════════════════════════════════
+function openDialog(npc){
+  G.currentNpc=npc;
+  G.dialogOpen=true;
+  const dialog = npc.dialogs[npc.fsmState] || npc.dialogs[Object.keys(npc.dialogs)[0]];
+  renderDialog(npc, dialog);
 }
 
-function showDialog(npc, dialog) {
-  if(!dialog) return;
-  state.dialogOpen=true;
-  document.getElementById('dialogBox').style.display='block';
-  document.getElementById('dialogNameText').textContent=npc.name;
-  document.getElementById('dialogText').textContent='"'+dialog.text+'"';
-
-  const choicesEl=document.getElementById('dialogChoices');
-  choicesEl.innerHTML='';
-  dialog.choices.forEach(ch => {
+function renderDialog(npc, dialog){
+  if(!dialog){closeDialog();return;}
+  document.getElementById('dlg').style.display='block';
+  // Avatar
+  const av=document.getElementById('dav');
+  av.src=npc.img; av.alt=npc.name;
+  document.getElementById('dname').textContent=npc.name;
+  document.getElementById('dtxt').textContent='"'+dialog.text+'"';
+  const cc=document.getElementById('dchoices');
+  cc.innerHTML='';
+  dialog.choices.forEach(ch=>{
     const btn=document.createElement('button');
-    btn.className='dialogChoice'+(ch.close&&ch.text!==dialog.choices[0]?.text?' neutral':'');
+    // Check if locked
+    const needsMet  = !ch.needItem || G.inventory.includes(ch.needItem);
+    const stepMet   = ch.needStep===undefined || G.missionStep>=ch.needStep;
+    const isLocked  = !needsMet || !stepMet;
+    btn.className='dc'+(ch.close&&ch.text!==dialog.choices[0]?.text?' neu':'')+(isLocked?' lk':'');
     btn.textContent=ch.text;
-    btn.onclick=()=>handleChoice(npc,ch);
-    choicesEl.appendChild(btn);
-  });
-}
-
-function handleChoice(npc, choice) {
-  // Condition check
-  if(choice.condition && !state.inventory.includes(choice.condition)) {
-    showNotif('','Kamu belum punya '+choice.condition.replace('item_','').replace(/_/g,' ')+'!','Cari dulu di got.');
-    return;
-  }
-
-  // Give item
-  if(choice.giveItem) {
-    state.inventory.push(choice.giveItem);
-    updateInventoryUI();
-    const inames={'item_peta':'Peta Sebagian Got','item_kunci':'Kunci Lorong','item_catatan':'Catatan Kiki'};
-    showNotif(choice.giveItem,'Item Diterima!', inames[choice.giveItem]||choice.giveItem);
-  }
-
-  // Take item
-  if(choice.takesItem) {
-    state.inventory=state.inventory.filter(i=>i!==choice.takesItem);
-    updateInventoryUI();
-  }
-
-  // Set FSM state
-  if(choice.setState) { npc.state=choice.setState; }
-
-  // Next dialog step or close
-  if(choice.close) {
-    closeDialog();
-  } else if(choice.next) {
-    const nextDialog=npc.dialogs[choice.next];
-    if(nextDialog) showDialog(npc,nextDialog);
-    else closeDialog();
-  }
-}
-
-function closeDialog() {
-  state.dialogOpen=false;
-  document.getElementById('dialogBox').style.display='none';
-  state.currentNPC=null;
-}
-
-// ═══════════════════════════════════════════════════════════
-// UI UPDATES
-// ═══════════════════════════════════════════════════════════
-function updateInventoryUI() {
-  const slotsEl=document.getElementById('invSlots');
-  slotsEl.innerHTML='';
-  const allItems=[
-    {id:'item_peta',name:'PETA'},
-    {id:'item_kunci',name:'KUNCI'},
-    {id:'item_makanan',name:'MAKANAN'},
-    {id:'item_papan_kayu',name:'PAPAN'},
-    {id:'item_obor',name:'OBOR'},
-    {id:'item_catatan',name:'CATATAN'},
-  ];
-  allItems.forEach(item=>{
-    const slot=document.createElement('div');
-    slot.className='invSlot'+(state.inventory.includes(item.id)?' has':'');
-    slot.textContent=state.inventory.includes(item.id)?item.name:'...';
-    slot.title=item.name;
-    slotsEl.appendChild(slot);
-  });
-}
-
-let notifAnimTimeout=null;
-function showNotif(imgKey, title, subtitle) {
-  const el=document.getElementById('notif');
-  document.getElementById('notifText').textContent=title;
-  document.getElementById('notifSub').textContent=subtitle;
-  el.style.display='flex';
-  el.style.opacity='1';
-  if(notifAnimTimeout) clearTimeout(notifAnimTimeout);
-  notifAnimTimeout=setTimeout(()=>{
-    el.style.transition='opacity 0.5s';
-    el.style.opacity='0';
-    setTimeout(()=>{el.style.display='none';el.style.opacity='1';el.style.transition='';},500);
-  },2800);
-}
-
-function updateHUD() {
-  const {hours,minutes,seconds} = state.timer;
-  const str=`Sisa Waktu: ${String(hours).padStart(2,'0')}:${String(minutes).padStart(2,'0')}:${String(seconds).padStart(2,'0')}`;
-  const timerEl=document.getElementById('hudTimer');
-  timerEl.textContent=str;
-  timerEl.className=hours===0&&minutes<30?'urgent':'';
-  const ptx=Math.floor(state.player.x/TILE), pty=Math.floor(state.player.y/TILE);
-  document.getElementById('hudArea').textContent=getArea(ptx,pty);
-}
-
-// ═══════════════════════════════════════════════════════════
-// MINIMAP
-// ═══════════════════════════════════════════════════════════
-function drawMinimap() {
-  mmCtx.fillStyle='#080808'; mmCtx.fillRect(0,0,130,130);
-  const scale=130/MAP_W;
-  for(let y=0;y<MAP_H;y++) {
-    for(let x=0;x<MAP_W;x++) {
-      const t=MAP_DATA[y][x];
-      let c='#111';
-      if(t===T.FLOOR) c='#1A2A1A';
-      else if(t===T.WALL||t===T.WALL_MOSS) c='#2A1F0F';
-      else if(t===T.PUDDLE) c='#0A1E30';
-      mmCtx.fillStyle=c;
-      mmCtx.fillRect(x*scale,y*(130/MAP_H),scale,130/MAP_H);
+    if(!isLocked){
+      btn.onclick=()=>handleChoice(npc,ch);
+    } else {
+      const reason = !needsMet ?
+        `[Butuh: ${ch.needItem?.replace('item_','').replace(/_/g,' ')}]` :
+        `[Selesaikan misi sebelumnya]`;
+      btn.onclick=()=>showNotif('','Belum bisa! 🔒',reason);
     }
+    cc.appendChild(btn);
+  });
+}
+
+function handleChoice(npc, ch){
+  // Give item to player
+  if(ch.giveItem){
+    G.inventory.push(ch.giveItem);
+    // add fake item entry for display if not in items list
+    const existing=G.items.find(i=>i.id===ch.giveItem);
+    if(!existing){
+      G.items.push({id:ch.giveItem,name:ch.giveItemName,img:`assets/${ch.giveItem}.png`,collected:false,requiredStep:-1,collected:true});
+    } else { existing.collected=true; }
+    updateInvUI();
+    showNotif(`assets/${ch.giveItem}.png`,'Item Diterima! 🎁',ch.giveItemName);
+  }
+  // Remove item from player
+  if(ch.removeItem){
+    G.inventory=G.inventory.filter(i=>i!==ch.removeItem);
+    updateInvUI();
+  }
+  // Advance mission step
+  if(ch.advanceStep!==undefined){
+    G.missionStep=ch.advanceStep;
+    updateMissionUI(); updateHUD();
+  }
+  // Next dialog or close
+  if(ch.close||!ch.next){ closeDialog(); }
+  else {
+    const nd=npc.dialogs[ch.next];
+    if(nd) renderDialog(npc,nd); else closeDialog();
+  }
+}
+
+function closeDialog(){
+  G.dialogOpen=false;
+  document.getElementById('dlg').style.display='none';
+  G.currentNpc=null;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// UI UPDATES
+// ═══════════════════════════════════════════════════════════════════
+const INV_DISPLAY=[
+  {id:'item_makanan',    name:'MAKANAN', img:'assets/item_makanan.png'},
+  {id:'item_papan_kayu', name:'PAPAN',   img:'assets/item_papan_kayu.png'},
+  {id:'item_obor',       name:'OBOR',    img:'assets/item_obor.png'},
+  {id:'item_catatan',    name:'CATATAN', img:'assets/item_catatan.png'},
+  {id:'item_peta',       name:'PETA',    img:'assets/item_peta.png'},
+  {id:'item_kunci',      name:'KUNCI',   img:'assets/item_kunci.png'},
+];
+
+function updateInvUI(){
+  const sl=document.getElementById('islots');
+  sl.innerHTML='';
+  INV_DISPLAY.forEach(id=>{
+    const div=document.createElement('div');
+    const has=G.inventory.includes(id.id);
+    div.className='isl'+(has?' has':'');
+    if(has){
+      const img=document.createElement('img');
+      img.src=id.img; img.alt=id.name;
+      div.appendChild(img);
+      const lbl=document.createElement('div');
+      lbl.className='iln'; lbl.textContent=id.name;
+      div.appendChild(lbl);
+    } else {
+      div.textContent='·';
+    }
+    sl.appendChild(div);
+  });
+}
+
+function updateMissionUI(){
+  const mp=document.getElementById('mp');
+  mp.innerHTML='<h4>🎯 MISI</h4>';
+  MISSIONS.forEach((m,i)=>{
+    const div=document.createElement('div');
+    const done=i<G.missionStep;
+    const active=i===G.missionStep;
+    div.className='msp'+(done?' dn':active?' act':'');
+    div.innerHTML=`<span class="msi">${done?'✓':active?'▶':'○'}</span>${m.label}`;
+    mp.appendChild(div);
+  });
+}
+
+function updateHUD(){
+  const h=Math.floor(G.timerSec/3600);
+  const m=Math.floor((G.timerSec%3600)/60);
+  const s=G.timerSec%60;
+  const el=document.getElementById('htimer');
+  el.textContent=`Sisa Waktu: ${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+  el.className=h===0&&m<30?'urgent':'';
+  const ptx=Math.floor(G.player.x/TILE),pty=Math.floor(G.player.y/TILE);
+  document.getElementById('harea').textContent=getArea(ptx,pty);
+  document.getElementById('hmission').textContent=MISSIONS[Math.min(G.missionStep,MISSIONS.length-1)]?.label||'';
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// MINIMAP
+// ═══════════════════════════════════════════════════════════════════
+function drawMinimap(){
+  const W=130,H=130,sx=W/MW,sy=H/MH;
+  mmCtx.fillStyle='#060606'; mmCtx.fillRect(0,0,W,H);
+  for(let ty=0;ty<MH;ty++) for(let tx=0;tx<MW;tx++){
+    const t=MAP[ty][tx];
+    mmCtx.fillStyle=t===T.FLOOR?'#182818':t===T.MOSS?'#182A10':t===T.WALL?'#2A1A08':'#0A1A28';
+    mmCtx.fillRect(tx*sx,ty*sy,sx,sy);
   }
   // Exit
-  const es=130/MAP_W;
-  mmCtx.fillStyle='rgba(255,255,80,0.8)';
-  mmCtx.fillRect(state.exitPos.tx*es,(state.exitPos.ty*(130/MAP_H)),es,130/MAP_H);
-
+  mmCtx.fillStyle='rgba(255,255,80,.85)';
+  mmCtx.fillRect(EXIT.tx*sx,EXIT.ty*sy,sx,sy);
   // NPCs
-  state.npcs.forEach(npc=>{
-    const nx=npc.x/TILE*(130/MAP_W), ny=npc.y/TILE*(130/MAP_H);
-    mmCtx.fillStyle=npc.id==='petugas_got'||npc.id==='blirik'?'#FF4444':'#AAFFAA';
-    mmCtx.beginPath(); mmCtx.arc(nx,ny,2.5,0,Math.PI*2); mmCtx.fill();
+  G.npcs.forEach(npc=>{
+    const nx=npc.x/TILE*sx, ny=npc.y/TILE*sy;
+    mmCtx.fillStyle=npc.id==='petugas'?'#FF4444':npc.id==='blirik'?'#FF8800':'#AAFFAA';
+    mmCtx.beginPath();mmCtx.arc(nx,ny,2.5,0,Math.PI*2);mmCtx.fill();
   });
-
   // Player
-  const ppx=state.player.x/TILE*(130/MAP_W), ppy=state.player.y/TILE*(130/MAP_H);
+  const ppx=G.player.x/TILE*sx, ppy=G.player.y/TILE*sy;
   mmCtx.fillStyle='#FFD700';
-  mmCtx.beginPath(); mmCtx.arc(ppx,ppy,3.5,0,Math.PI*2); mmCtx.fill();
-
-  // Camera viewport rect
-  mmCtx.strokeStyle='rgba(255,255,255,0.2)'; mmCtx.lineWidth=1;
-  mmCtx.strokeRect(
-    state.camera.x/TILE*(130/MAP_W),
-    state.camera.y/TILE*(130/MAP_H),
-    (CANVAS_W/TILE)*(130/MAP_W),
-    (CANVAS_H/TILE)*(130/MAP_H)
-  );
-
-  mmCtx.fillStyle='#333'; mmCtx.fillRect(0,0,130,14);
-  mmCtx.fillStyle='#555'; mmCtx.font='8px monospace'; mmCtx.textAlign='center';
-  mmCtx.fillText('PETA',65,10);
+  mmCtx.beginPath();mmCtx.arc(ppx,ppy,3.5,0,Math.PI*2);mmCtx.fill();
+  // Viewport rect
+  mmCtx.strokeStyle='rgba(255,255,255,.15)';mmCtx.lineWidth=1;
+  mmCtx.strokeRect(G.camera.x/TILE*sx,G.camera.y/TILE*sy,(CW/TILE)*sx,(CH/TILE)*sy);
+  // Label
+  mmCtx.fillStyle='#2A2A2A'; mmCtx.font='8px monospace';
+  mmCtx.textAlign='center'; mmCtx.fillText('PETA',65,10);
 }
 
-// ═══════════════════════════════════════════════════════════
-// TRAP CHECK
-// ═══════════════════════════════════════════════════════════
-function checkTraps() {
-  for(const trap of state.trapPositions) {
-    const px=trap.tx*TILE+TILE/2, py=trap.ty*TILE+TILE/2;
-    const dx=state.player.x-px, dy=state.player.y-py;
-    if(Math.sqrt(dx*dx+dy*dy)<TILE*0.5) {
-      gameOver('Kamu terkena perangkap tikus!');
+// ═══════════════════════════════════════════════════════════════════
+// NOTIFICATION
+// ═══════════════════════════════════════════════════════════════════
+function showNotif(imgSrc, title, sub){
+  const el=document.getElementById('notif');
+  const img=document.getElementById('notif').querySelector('img');
+  if(imgSrc){ img.src=imgSrc; img.style.display='block'; }
+  else { img.style.display='none'; }
+  document.getElementById('ntitle').textContent=title;
+  document.getElementById('nsub').textContent=sub;
+  el.style.display='flex'; el.style.opacity='1';
+  clearTimeout(G.notifTimeout);
+  G.notifTimeout=setTimeout(()=>{
+    el.style.transition='opacity .5s';
+    el.style.opacity='0';
+    setTimeout(()=>{el.style.display='none';el.style.opacity='1';el.style.transition='';},500);
+  },3000);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// TRAP & GAMEOVER
+// ═══════════════════════════════════════════════════════════════════
+function checkTraps(){
+  for(const trap of TRAPS){
+    if(dist(G.player,{x:trap.tx*TILE+TILE/2,y:trap.ty*TILE+TILE/2})<TILE*.48){
+      gameOver('Kamu terkena perangkap tikus! 🪤');
       return;
     }
   }
 }
 
-// ═══════════════════════════════════════════════════════════
-// GAME OVER / WIN
-// ═══════════════════════════════════════════════════════════
-function gameOver(reason) {
-  state.gameRunning=false;
-  clearInterval(state.timerInterval);
-  showOverlay('GAME OVER', reason, [
-    {text:'Main Lagi', cls:'', action:resetGame},
+function gameOver(reason){
+  G.running=false;
+  clearInterval(G.timerInterval);
+  showOverlay('GAME OVER 💀',reason,[
+    {text:'Main Lagi',cls:'',fn:startGame},
+    {text:'Intro',cls:'red',fn:showIntro},
   ]);
 }
 
-function winGame() {
-  state.gameRunning=false;
-  clearInterval(state.timerInterval);
-  showOverlay('SELAMAT!', 'Si Tikus berhasil kabur dari got! Kebebasan menanti!', [
-    {text:'Main Lagi', cls:'', action:resetGame},
+function winGame(){
+  G.running=false;
+  clearInterval(G.timerInterval);
+  showOverlay('SELAMAT! 🎉','Si Tikus berhasil kabur dari got sebelum dibersihkan!',[
+    {text:'Main Lagi',cls:'',fn:startGame},
+    {text:'Intro',cls:'red',fn:showIntro},
   ]);
 }
 
-function showOverlay(title, subtitle, btns) {
-  const el=document.getElementById('overlay');
-  document.getElementById('overlayTitle').textContent=title;
-  document.getElementById('overlaySubtitle').textContent=subtitle;
-  const btnsEl=document.getElementById('overlayBtns');
-  btnsEl.innerHTML='';
+// ═══════════════════════════════════════════════════════════════════
+// OVERLAY
+// ═══════════════════════════════════════════════════════════════════
+function showOverlay(title,sub,btns){
+  document.getElementById('ovt').textContent=title;
+  document.getElementById('ovs').textContent=sub;
+  const bb=document.getElementById('ovb');
+  bb.innerHTML='';
   btns.forEach(b=>{
     const btn=document.createElement('button');
-    btn.className='overlayBtn '+(b.cls||'');
+    btn.className='ob '+(b.cls||'');
     btn.textContent=b.text;
-    btn.onclick=b.action;
-    btnsEl.appendChild(btn);
+    btn.onclick=b.fn;
+    bb.appendChild(btn);
   });
-  el.style.display='flex';
+  document.getElementById('ov').style.display='flex';
+}
+function hideOverlay(){ document.getElementById('ov').style.display='none'; }
+
+function pauseGame(){
+  if(!G.running) return;
+  G.paused=true;
+  clearInterval(G.timerInterval);
+  showOverlay('PAUSE ⏸','',[ 
+    {text:'Lanjutkan',cls:'',fn:()=>{G.paused=false;hideOverlay();startTimer();}},
+    {text:'Mulai Ulang',cls:'red',fn:startGame},
+  ]);
 }
 
-function hideOverlay() {
-  document.getElementById('overlay').style.display='none';
-}
-
-function pauseGame() {
-  if(!state.gameRunning) return;
-  state.paused=!state.paused;
-  if(state.paused) {
-    clearInterval(state.timerInterval);
-    showOverlay('PAUSE','', [
-      {text:'Lanjutkan', cls:'', action:()=>{
-        state.paused=false; hideOverlay(); startTimer();
-      }},
-      {text:'Mulai Ulang', cls:'red', action:resetGame},
-    ]);
-  }
-}
-
-// ═══════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════
 // TIMER
-// ═══════════════════════════════════════════════════════════
-function startTimer() {
-  state.timerInterval=setInterval(()=>{
-    if(!state.gameRunning||state.paused) return;
-    state.timer.seconds--;
-    if(state.timer.seconds<0) { state.timer.seconds=59; state.timer.minutes--; }
-    if(state.timer.minutes<0) { state.timer.minutes=59; state.timer.hours--; }
-    if(state.timer.hours<0) gameOver('Waktu habis! Petugas Got telah membersihkan got.');
-    updateHUD();
+// ═══════════════════════════════════════════════════════════════════
+function startTimer(){
+  G.timerInterval=setInterval(()=>{
+    if(!G.running||G.paused) return;
+    G.timerSec--;
+    if(G.timerSec<=0) gameOver('Waktu habis! Petugas Got telah membersihkan seluruh got. ⏰');
+    else updateHUD();
   },1000);
 }
 
-// ═══════════════════════════════════════════════════════════
-// INIT & RESET
-// ═══════════════════════════════════════════════════════════
-function initNPCs() {
-  state.npcs=NPC_DEFS.map(def=>({
-    ...def,
-    x: def.tx*TILE+TILE/2,
-    y: def.ty*TILE+TILE/2,
-    originTx: def.tx,
-    originTy: def.ty,
-    patrolPath: def.patrolPath ? def.patrolPath.map(p=>({...p})) : undefined,
-  }));
-}
-
-function resetGame() {
-  hideOverlay();
-  closeDialog();
-  state.player.x=14*TILE; state.player.y=11*TILE;
-  state.player.dir='down'; state.player.moving=false;
-  state.inventory=[];
-  state.timer={hours:23,minutes:59,seconds:59,total:23*3600+59*60+59};
-  state.gameRunning=true;
-  state.paused=false;
-  state.itemPositions.forEach(i=>i.collected=false);
-  initNPCs();
-  updateInventoryUI();
-  updateHUD();
-  clearInterval(state.timerInterval);
-  startTimer();
-}
-
-// ═══════════════════════════════════════════════════════════
-// MAIN RENDER LOOP
-// ═══════════════════════════════════════════════════════════
-let tick=0;
-function render() {
-  requestAnimationFrame(render);
-  tick++;
-
-  if(!state.gameRunning&&!state.paused) return;
-
+// ═══════════════════════════════════════════════════════════════════
+// GAME LOOP
+// ═══════════════════════════════════════════════════════════════════
+function loop(){
+  requestAnimationFrame(loop);
+  G.tick++;
+  if(!G.running) return;
   movePlayer();
   updateCamera();
-  updateNPCs(tick);
+  updateNPCs();
   checkTraps();
-
+  // Canvas size sync
+  const rect=canvas.getBoundingClientRect();
+  canvas.width=rect.width||CW;
+  canvas.height=rect.height||CH;
+  const scaleX=canvas.width/CW, scaleY=canvas.height/CH;
+  ctx.save();
+  ctx.scale(scaleX,scaleY);
   // Clear
-  ctx.fillStyle='#050505';
-  ctx.fillRect(0,0,CANVAS_W,CANVAS_H);
-
-  // Draw world
-  const startTX=Math.max(0,Math.floor(state.camera.x/TILE)-1);
-  const endTX=Math.min(MAP_W,Math.ceil((state.camera.x+CANVAS_W)/TILE)+1);
-  const startTY=Math.max(0,Math.floor(state.camera.y/TILE)-1);
-  const endTY=Math.min(MAP_H,Math.ceil((state.camera.y+CANVAS_H)/TILE)+1);
-
-  for(let ty=startTY;ty<endTY;ty++) {
-    for(let tx=startTX;tx<endTX;tx++) {
-      const px=tx*TILE-state.camera.x;
-      const py=ty*TILE-state.camera.y;
-      drawTile(ctx,MAP_DATA[ty][tx],px,py);
-    }
-  }
-
-  // Draw exit
-  drawExit(ctx,tick);
-
-  // Draw traps
-  for(const trap of state.trapPositions) {
-    const px=trap.tx*TILE+TILE/2-state.camera.x;
-    const py=trap.ty*TILE+TILE/2-state.camera.y;
-    drawTrap(ctx,px,py);
-  }
-
-  // Draw items
-  for(const item of state.itemPositions) {
-    drawItem(ctx,item,tick);
-  }
-
-  // Draw NPCs
-  for(const npc of state.npcs) {
-    drawNPC(ctx,npc,state.camera.x,state.camera.y,tick);
-  }
-
-  // Draw player
-  const ppx=state.player.x-state.camera.x;
-  const ppy=state.player.y-state.camera.y;
-  drawPlayer(ctx,ppx,ppy,state.player.dir,state.player.moving,tick);
-
+  ctx.fillStyle='#050505'; ctx.fillRect(0,0,CW,CH);
+  // World tiles
+  const sx=Math.max(0,Math.floor(G.camera.x/TILE)-1);
+  const ex=Math.min(MW,Math.ceil((G.camera.x+CW)/TILE)+1);
+  const sy2=Math.max(0,Math.floor(G.camera.y/TILE)-1);
+  const ey=Math.min(MH,Math.ceil((G.camera.y+CH)/TILE)+1);
+  for(let ty=sy2;ty<ey;ty++) for(let tx=sx;tx<ex;tx++) drawTile(ctx,MAP[ty][tx],tx*TILE-G.camera.x,ty*TILE-G.camera.y);
+  // Exit
+  drawExit(ctx,G.tick);
+  // Traps
+  TRAPS.forEach(tr=>drawTrap(ctx,tr.tx*TILE+TILE/2-G.camera.x,tr.ty*TILE+TILE/2-G.camera.y,G.tick));
+  // Items
+  G.items.forEach(it=>drawItem(ctx,it,G.tick));
+  // NPCs
+  G.npcs.forEach(npc=>drawNPC(ctx,npc,G.camera.x,G.camera.y,G.tick));
+  // Player
+  const ppx=G.player.x-G.camera.x, ppy=G.player.y-G.camera.y;
+  drawPlayer(ctx,ppx,ppy,G.player.dir,G.player.moving,G.tick);
   // Fog of war
-  const fogCanvas=document.createElement('canvas');
-  fogCanvas.width=CANVAS_W; fogCanvas.height=CANVAS_H;
-  const fogCtx=fogCanvas.getContext('2d');
-  drawFog(fogCtx,ppx,ppy,TILE*4.5);
-  ctx.drawImage(fogCanvas,0,0);
-
+  drawFog(ctx,ppx,ppy,TILE*4.5);
+  ctx.restore();
   // Minimap
   drawMinimap();
 }
 
-// ═══════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════
 // INPUT
-// ═══════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════
 document.addEventListener('keydown',e=>{
-  state.keys[e.key]=true;
-  if(e.key==='e'||e.key==='E') { e.preventDefault(); interact(); }
-  if(e.key==='Escape') { e.preventDefault(); if(state.dialogOpen) closeDialog(); else pauseGame(); }
-  if(e.key==='i'||e.key==='I') { /* could show full inventory */ }
-  if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key)) e.preventDefault();
+  G.keys[e.key]=true;
+  if(e.key==='e'||e.key==='E'){e.preventDefault();interact();}
+  if(e.key==='Escape'){e.preventDefault();if(G.dialogOpen)closeDialog();else if(G.running&&!G.paused)pauseGame();else if(G.paused){G.paused=false;hideOverlay();startTimer();}}
+  if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key))e.preventDefault();
 });
-document.addEventListener('keyup',e=>{ delete state.keys[e.key]; });
+document.addEventListener('keyup',e=>delete G.keys[e.key]);
 
-// Touch / click on canvas for mobile
-canvas.addEventListener('click',e=>{
-  const rect=canvas.getBoundingClientRect();
-  const scaleX=CANVAS_W/rect.width, scaleY=CANVAS_H/rect.height;
-  const cx=(e.clientX-rect.left)*scaleX, cy=(e.clientY-rect.top)*scaleY;
-  // If near an NPC, interact
-  interact();
-});
-
-// ═══════════════════════════════════════════════════════════
-// SPLASH SCREEN
-// ═══════════════════════════════════════════════════════════
-function showSplash() {
-  showOverlay('TIKUS DI GOT', 'Top-Down Adventure | Kabur sebelum got dibersihkan!', [
-    {text:'Mulai Bermain!', cls:'', action:()=>{ resetGame(); }},
-  ]);
-  // Draw title screen on canvas
-  ctx.fillStyle='#050505'; ctx.fillRect(0,0,CANVAS_W,CANVAS_H);
-  // Draw some tiles as preview
-  for(let ty=0;ty<MAP_H;ty++) for(let tx=0;tx<MAP_W;tx++) {
-    drawTile(ctx,MAP_DATA[ty][tx],tx*TILE-6*TILE,ty*TILE-5*TILE);
-  }
-  // Dark overlay
-  ctx.fillStyle='rgba(0,0,0,0.7)'; ctx.fillRect(0,0,CANVAS_W,CANVAS_H);
+// ═══════════════════════════════════════════════════════════════════
+// MOBILE D-PAD
+// ═══════════════════════════════════════════════════════════════════
+function setupMobile(){
+  const map={dpu:'w',dpd:'s',dpl:'a',dpr:'d'};
+  Object.entries(map).forEach(([id,key])=>{
+    const el=document.getElementById(id);
+    if(!el) return;
+    const press=()=>{G.keys[key]=true;el.classList.add('p');};
+    const rel=()=>{delete G.keys[key];el.classList.remove('p');};
+    el.addEventListener('touchstart',e=>{e.preventDefault();press();},{passive:false});
+    el.addEventListener('touchend',e=>{e.preventDefault();rel();},{passive:false});
+    el.addEventListener('mousedown',press);
+    el.addEventListener('mouseup',rel);
+  });
+  document.getElementById('btn-e')?.addEventListener('click',interact);
+  document.getElementById('btn-esc')?.addEventListener('click',()=>{
+    if(G.dialogOpen)closeDialog(); else if(G.running&&!G.paused)pauseGame(); else{G.paused=false;hideOverlay();startTimer();}
+  });
 }
 
-// ═══════════════════════════════════════════════════════════
-// START
-// ═══════════════════════════════════════════════════════════
-initNPCs();
-updateInventoryUI();
-updateHUD();
-showSplash();
-render();
+// ═══════════════════════════════════════════════════════════════════
+// SCREENS
+// ═══════════════════════════════════════════════════════════════════
+function showIntro(){
+  G.running=false;
+  clearInterval(G?.timerInterval);
+  document.getElementById('introScreen').classList.add('active');
+  document.getElementById('gameScreen').classList.remove('active');
+}
+
+function startGame(mode){
+  document.getElementById('introScreen').classList.remove('active');
+  document.getElementById('gameScreen').classList.add('active');
+  if(mode==='mobile') document.body.classList.add('mobile');
+  else document.body.classList.remove('mobile');
+  resetState();
+  G.mobileMode=(mode==='mobile');
+  G.running=true;
+  hideOverlay();
+  closeDialog();
+  updateInvUI();
+  updateMissionUI();
+  updateHUD();
+  clearInterval(G.timerInterval);
+  startTimer();
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// BOOT
+// ═══════════════════════════════════════════════════════════════════
+resetState();
+setupMobile();
+loop();
+showIntro();

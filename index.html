@@ -2,66 +2,224 @@
 <html lang="id">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Game | Tikus Got</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Tikus di Got</title>
 <link rel="stylesheet" href="style.css">
-<link rel="icon" href="assets/tikus_down.png" type="image/png">
 </head>
 <body>
-<div id="gameWrapper">
-  <canvas id="gameCanvas" width="900" height="514"></canvas>
 
-  <!-- HUD TOP -->
-  <div id="hud">
-    <div id="hudTitle">TIKUS DI GOT</div>
-    <div id="hudTimer">Sisa Waktu: 23:59:59</div>
-    <div id="hudArea">Got Tengah</div>
-  </div>
+<!-- ══════════════════════════════════════════════════════
+     INTRO SCREEN
+══════════════════════════════════════════════════════ -->
+<div class="screen active" id="introScreen">
+  <div class="ibg"></div>
+  <div class="iwrap">
 
-  <!-- MINIMAP -->
-  <div id="minimap">
-    <div id="minimapLabel">PETA</div>
-    <canvas id="minimapCanvas" width="130" height="130"></canvas>
-  </div>
+    <!-- Logo -->
+    <div class="irat">🐭</div>
+    <div class="ilogo">TIKUS DI GOT</div>
+    <div class="itag">Top-Down Adventure Game</div>
 
-  <!-- CANVAS GAME (area between HUDs) -->
-
-  <!-- BOTTOM HUD -->
-  <div id="bottomHud">
-    <div id="invLabel">INVENTORY</div>
-    <div id="invSlots" style="display:flex;gap:5px;"></div>
-    <div id="controls">
-      <div><span>[WASD]</span> Gerak</div>
-      <div><span>[E]</span> Interaksi</div>
-      <div><span>[I]</span> Inventory</div>
-      <div><span>[ESC]</span> Pause</div>
+    <!-- Cerita -->
+    <div class="card">
+      <div class="ct">📜 CERITA</div>
+      <p>
+        Si <span class="hl">Tikus</span> telah tinggal nyaman di jaringan got bawah Kota Mentari.
+        Suatu hari, sebuah pengumuman mengejutkan tersebar:
+        <span class="dng">Dinas Kebersihan Kota akan membersihkan got dalam 24 jam!</span>
+        <br><br>
+        Si Tikus harus <span class="hl">menjelajahi got, membantu para penghuni, dan kabur</span>
+        sebelum Petugas Got datang!
+      </p>
     </div>
-  </div>
 
-  <!-- DIALOG -->
-  <div id="dialogBox">
-    <div id="dialogName"><img id="dialogAvatar" src=""><span id="dialogNameText"></span></div>
-    <div id="dialogText"></div>
-    <div id="dialogChoices"></div>
-  </div>
-
-  <!-- NOTIF -->
-  <div id="notif">
-    <img id="notifImg" src="">
-    <div>
-      <div id="notifText"></div>
-      <div id="notifSub"></div>
+    <!-- Misi -->
+    <div class="card">
+      <div class="ct">🎯 URUTAN MISI</div>
+      <div class="mslist">
+        <div class="msitem"><div class="msnum">1</div>Cari <b>Makanan Basi</b> di Got Tengah</div>
+        <div class="msitem"><div class="msnum">2</div>Berikan ke <b>Pak Koak</b> → Dapat <b>Peta Got</b></div>
+        <div class="msitem"><div class="msnum">3</div>Temui <b>Kiki</b> → Dapat info dan <b>Catatan</b></div>
+        <div class="msitem"><div class="msnum">4</div>Cari <b>Papan Kayu</b> di Got Utara</div>
+        <div class="msitem"><div class="msnum">5</div>Berikan ke <b>Nyonya Siput</b> → Dapat <b>Kunci</b></div>
+        <div class="msitem"><div class="msnum">6</div>Gunakan kunci untuk <b>Kabur dari Got!</b></div>
+      </div>
     </div>
-  </div>
 
-  <!-- OVERLAY -->
-  <div id="overlay">
-    <div id="overlayTitle"></div>
-    <div id="overlaySubtitle"></div>
-    <div id="overlayBtns" style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center;"></div>
+    <!-- Bahaya -->
+    <div class="card" style="border-color:#5A2020;">
+      <div class="ct" style="color:#FF6644;">⚠️ BAHAYA</div>
+      <div class="mslist">
+        <div class="msitem" style="color:#AA6644;"><div class="msnum" style="background:#5A2020;">!</div>
+          <b>Petugas Got</b> berpatroli — jika mendeteksimu, dia akan mengejar!</div>
+        <div class="msitem" style="color:#AA6644;"><div class="msnum" style="background:#5A2020;">!</div>
+          <b>Perangkap Tikus</b> tersembunyi di lorong — injak = Game Over!</div>
+        <div class="msitem" style="color:#AA6644;"><div class="msnum" style="background:#5A2020;">!</div>
+          <b>Timer 24 jam</b> — harus kabur sebelum waktu habis!</div>
+      </div>
+    </div>
+
+    <!-- Kontrol PC -->
+    <div class="card" id="ctrlPC">
+      <div class="ct">🖥️ KONTROL (PC)</div>
+      <div class="cgrid">
+        <div><span class="k">WASD / Arrow</span> — Gerak</div>
+        <div><span class="k">E</span> — Interaksi / Ambil Item</div>
+        <div><span class="k">ESC</span> — Pause / Tutup Dialog</div>
+        <div><span class="k">Dekati NPC</span> → tekan E untuk dialog</div>
+      </div>
+    </div>
+
+    <!-- Kontrol HP -->
+    <div class="card" id="ctrlHP" style="display:none;">
+      <div class="ct">📱 KONTROL (HP)</div>
+      <div class="cgrid">
+        <div><span class="k">D-Pad</span> — Gerak karakter</div>
+        <div><span class="k">Tombol E</span> — Interaksi / Ambil Item</div>
+        <div><span class="k">Tombol ⏸</span> — Pause</div>
+        <div><span class="k">Dekati NPC</span> → tap E untuk dialog</div>
+      </div>
+    </div>
+
+    <!-- Pilih Mode -->
+    <div class="mlabel">PILIH MODE</div>
+    <div class="mrow">
+      <button class="mbtn" id="btnPC" onclick="selectMode('pc')">
+        <span class="mi">🖥️</span>
+        Mode PC
+        <span class="ms">Keyboard + Mouse</span>
+      </button>
+      <button class="mbtn" id="btnHP" onclick="selectMode('mobile')">
+        <span class="mi">📱</span>
+        Mode HP
+        <span class="ms">Touchscreen + D-Pad</span>
+      </button>
+    </div>
+
+    <div id="startBtn" style="display:none;">
+      <button class="mbtn" style="min-width:200px;background:#1A4A2A;border-color:#4A9A50;font-size:22px;" onclick="startGame(selectedMode)">
+        <span class="mi">🐭</span>
+        MULAI BERMAIN!
+      </button>
+    </div>
+
   </div>
 </div>
 
+<!-- ══════════════════════════════════════════════════════
+     GAME SCREEN
+══════════════════════════════════════════════════════ -->
+<div class="screen" id="gameScreen">
+  <div id="gw">
+
+    <!-- HUD TOP -->
+    <div id="hud">
+      <div id="htitle">TIKUS DI GOT</div>
+      <div id="htimer">Sisa Waktu: 23:59:59</div>
+      <div id="hmission">Cari Makanan Basi...</div>
+      <div id="harea">Got Tengah</div>
+    </div>
+
+    <!-- CANVAS -->
+    <canvas id="gc" width="900" height="514"></canvas>
+
+    <!-- MISSION PANEL -->
+    <div id="mp">
+      <h4>🎯 MISI</h4>
+    </div>
+
+    <!-- MINIMAP -->
+    <div id="mm">
+      <div id="mml">PETA</div>
+      <canvas id="mmc" width="130" height="130"></canvas>
+    </div>
+
+    <!-- HUD BOTTOM -->
+    <div id="bh">
+      <div id="ilabel">INVENTORY</div>
+      <div id="islots"></div>
+      <div id="pcc">
+        <div><span>[WASD]</span> Gerak</div>
+        <div><span>[E]</span> Interaksi</div>
+        <div><span>[ESC]</span> Pause</div>
+      </div>
+    </div>
+
+    <!-- DIALOG BOX -->
+    <div id="dlg">
+      <div id="dh">
+        <img id="dav" src="" alt="NPC">
+        <div id="dname">NPC</div>
+      </div>
+      <div id="dtxt"></div>
+      <div id="dchoices"></div>
+    </div>
+
+    <!-- NOTIFICATION -->
+    <div id="notif">
+      <img src="" alt="">
+      <div>
+        <div id="ntitle"></div>
+        <div id="nsub"></div>
+      </div>
+    </div>
+
+    <!-- OVERLAY (Pause/GameOver/Win) -->
+    <div id="ov">
+      <div id="ovt"></div>
+      <div id="ovs"></div>
+      <div id="ovb"></div>
+    </div>
+
+    <!-- ALERT BORDER -->
+    <div id="ab"></div>
+
+    <!-- MOBILE CONTROLS -->
+    <div id="mctrl">
+      <!-- D-PAD -->
+      <div id="dpad">
+        <div class="dpb" id="dpu">▲</div>
+        <div class="dpb" id="dpd">▼</div>
+        <div class="dpb" id="dpl">◀</div>
+        <div class="dpb" id="dpr">▶</div>
+        <div id="dpc"></div>
+      </div>
+      <!-- ACTION BUTTONS -->
+      <div id="abtns">
+        <button class="abtn" id="btn-e">
+          <span class="ai">⚡</span>
+          Aksi [E]
+        </button>
+        <button class="abtn" id="btn-esc">
+          <span class="ai">⏸</span>
+          Pause
+        </button>
+      </div>
+    </div>
+
+  </div><!-- /gw -->
+</div><!-- /gameScreen -->
+
+<script>
+// Mode selection logic (in HTML to work before script.js loads)
+let selectedMode = 'pc';
+
+function selectMode(mode) {
+  selectedMode = mode;
+  // Highlight selected button
+  document.getElementById('btnPC').style.borderColor = mode==='pc' ? '#FFD700' : '#4A7A30';
+  document.getElementById('btnHP').style.borderColor = mode==='mobile' ? '#FFD700' : '#4A7A30';
+  document.getElementById('btnPC').style.color = mode==='pc' ? '#FFD700' : '';
+  document.getElementById('btnHP').style.color = mode==='mobile' ? '#FFD700' : '';
+  // Show relevant controls
+  document.getElementById('ctrlPC').style.display = mode==='pc' ? 'block' : 'none';
+  document.getElementById('ctrlHP').style.display = mode==='mobile' ? 'block' : 'none';
+  // Show start button
+  document.getElementById('startBtn').style.display = 'block';
+  // Scroll to start button
+  document.getElementById('startBtn').scrollIntoView({behavior:'smooth'});
+}
+</script>
 <script src="script.js"></script>
 </body>
 </html>
