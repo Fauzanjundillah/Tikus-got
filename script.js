@@ -34,17 +34,20 @@ const MAP = [
 ];
 
 // ── MISSION CHAIN (ordered, must complete in sequence) ──────────────
-// missionStep: 0=find makanan, 1=beri ke pak koak (dapat peta),
-//              2=temui kiki (dapat catatan), 3=find papan kayu,
-//              4=beri ke nyonya siput (dapat kunci), 5=exit
+// Hanya tampil 1 misi aktif sekarang, setelah selesai langsung ganti
 const MISSIONS = [
-  { id:'m0', label:'Cari Makanan Basi di Got Tengah',    icon:'🍖' },
-  { id:'m1', label:'Beri Makanan ke Pak Koak → Dapat Peta', icon:'🗺️' },
-  { id:'m2', label:'Temui Kiki untuk dapat info',        icon:'💬' },
-  { id:'m3', label:'Cari Papan Kayu di Got Timur',       icon:'🪵' },
-  { id:'m4', label:'Beri Papan ke Nyonya Siput → Dapat Kunci', icon:'🔑' },
-  { id:'m5', label:'Temukan Pintu Keluar!',              icon:'🚪' },
+  { id:'m0', label:'Cari Makanan Basi di Got Tengah',         icon:'🍖' },
+  { id:'m1', label:'Beri Makanan ke Pak Koak → Dapat Peta',   icon:'🗺️' },
+  { id:'m2', label:'Temui Kiki untuk dapat info',             icon:'💬' },
+  { id:'m3', label:'Cari Papan Kayu di Got Utara',            icon:'🪵' },
+  { id:'m4', label:'Beri Papan ke Nyonya Siput → Dapat Kunci',icon:'🔑' },
+  { id:'m5', label:'Temukan Pintu Keluar!',                   icon:'🚪' },
 ];
+
+// Timer: 8 menit total (480 detik)
+// Petugas masuk setelah 60 detik (1 menit)
+const TOTAL_TIME    = 480;   // 8 menit
+const PETUGAS_DELAY = 60;    // 60 detik = 1 menit
 
 // ── NPC DEFINITIONS ─────────────────────────────────────────────────
 const NPC_DEFS = [
@@ -179,11 +182,12 @@ const NPC_DEFS = [
   },
   {
     id:'petugas', name:'Petugas Got', img:'assets/npc_petugas_got.png',
-    tx:28, ty:13, fsmState:'PATROL', wanderRange:0,
+    tx:29, ty:13, fsmState:'IDLE', wanderRange:0,  // starts hidden at edge
     requiredStep:-1,
     patrolPath:[
-      {tx:27,ty:7},{tx:27,ty:13},{tx:27,ty:19},
-      {tx:22,ty:19},{tx:22,ty:7},{tx:27,ty:7}
+      {tx:27,ty:2},{tx:27,ty:7},{tx:27,ty:13},
+      {tx:20,ty:13},{tx:20,ty:7},{tx:14,ty:7},
+      {tx:14,ty:19},{tx:20,ty:19},{tx:27,ty:19},{tx:27,ty:13}
     ],
     patrolIdx:0, patrolTimer:0, patrolSpeed:35,
     dialogs:{}
@@ -231,7 +235,8 @@ function resetState() {
       lastSeen: 0,
     })),
     items: ITEM_DEFS.map(d=>({...d})),
-    timerSec: 23*3600+59*60+59,
+    timerSec: TOTAL_TIME,
+    petugasSpawned: false,
     timerInterval: null,
     alertBorderOn: false,
     currentNpc: null,
@@ -665,10 +670,13 @@ function movePlayer(){
 // ═══════════════════════════════════════════════════════════════════
 function updateNPCs(){
   G.npcs.forEach(npc=>{
+    // Petugas hanya aktif setelah di-spawn
+    if(npc.id==='petugas' && !G.petugasSpawned) return;
+
     // Patrol
-    if(npc.fsmState==='PATROL'||npc.fsmState==='ALERT'||npc.id==='petugas'||npc.id==='blirik'){
+    if((npc.id==='blirik') || (npc.id==='petugas' && G.petugasSpawned)){
       npc.patrolTimer++;
-      const spd = npc.id==='petugas' ? (npc.alertMode?20:40) : 55;
+      const spd = npc.id==='petugas' ? (npc.alertMode?18:npc.patrolSpeed||35) : 55;
       if(npc.patrolTimer>=spd){
         npc.patrolTimer=0;
         if(npc.alertMode){
@@ -687,16 +695,20 @@ function updateNPCs(){
           }
         }
       }
-      // Detection
-      const d=dist(G.player,npc);
-      if(npc.id==='petugas'&&!npc.alertMode&&d<TILE*3){
+      // Detection radius — petugas punya penglihatan lebih luas saat alert
+      const d2=dist(G.player,npc);
+      if(npc.id==='petugas'&&!npc.alertMode&&d2<TILE*2.5){
         npc.alertMode=true;
-        showNotif('','⚠️ TERDETEKSI!','Petugas melihatmu! Cepat kabur!');
+        showNotif('','🚨 PETUGAS MENDEKAT!','Dia melihatmu! Cepat kabur!');
         document.getElementById('ab').classList.add('on');
         G.alertBorderOn=true;
-        setTimeout(()=>{document.getElementById('ab').classList.remove('on');G.alertBorderOn=false;},4000);
       }
-    }
+      if(npc.id==='petugas'&&npc.alertMode&&d2>TILE*6){
+        npc.alertMode=false; // kehilangan jejak
+        document.getElementById('ab').classList.remove('on');
+        G.alertBorderOn=false;
+      }
+    } // end patrol block
 
     // Wandering
     if(npc.wanderRange>0 && npc.id!=='blirik' && npc.id!=='petugas'){
@@ -888,27 +900,28 @@ function updateInvUI(){
 
 function updateMissionUI(){
   const mp=document.getElementById('mp');
-  mp.innerHTML='<h4>🎯 MISI</h4>';
-  MISSIONS.forEach((m,i)=>{
-    const div=document.createElement('div');
-    const done=i<G.missionStep;
-    const active=i===G.missionStep;
-    div.className='msp'+(done?' dn':active?' act':'');
-    div.innerHTML=`<span class="msi">${done?'✓':active?'▶':'○'}</span>${m.label}`;
-    mp.appendChild(div);
-  });
+  const cur=MISSIONS[Math.min(G.missionStep,MISSIONS.length-1)];
+  if(!cur||G.missionStep>=MISSIONS.length){
+    mp.innerHTML='<h4>🎯 MISI</h4><div class="msp act"><span class="msi">✓</span>Semua misi selesai!</div>';
+    return;
+  }
+  mp.innerHTML=`<h4>🎯 MISI ${G.missionStep+1}/${MISSIONS.length}</h4>
+  <div class="msp act">
+    <span class="msi">${cur.icon}</span>
+    ${cur.label}
+  </div>`;
 }
 
 function updateHUD(){
-  const h=Math.floor(G.timerSec/3600);
-  const m=Math.floor((G.timerSec%3600)/60);
+  const m=Math.floor(G.timerSec/60);
   const s=G.timerSec%60;
   const el=document.getElementById('htimer');
-  el.textContent=`Sisa Waktu: ${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
-  el.className=h===0&&m<30?'urgent':'';
+  el.textContent=`Waktu: ${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+  el.className=m<2?'urgent':'';
   const ptx=Math.floor(G.player.x/TILE),pty=Math.floor(G.player.y/TILE);
   document.getElementById('harea').textContent=getArea(ptx,pty);
-  document.getElementById('hmission').textContent=MISSIONS[Math.min(G.missionStep,MISSIONS.length-1)]?.label||'';
+  const cur=MISSIONS[Math.min(G.missionStep,MISSIONS.length-1)];
+  document.getElementById('hmission').textContent=cur?cur.label:'Selesai!';
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -1028,6 +1041,16 @@ function startTimer(){
   G.timerInterval=setInterval(()=>{
     if(!G.running||G.paused) return;
     G.timerSec--;
+    // Spawn petugas setelah PETUGAS_DELAY detik berlalu
+    const elapsed = TOTAL_TIME - G.timerSec;
+    if(!G.petugasSpawned && elapsed>=PETUGAS_DELAY){
+      G.petugasSpawned=true;
+      const petugas=G.npcs.find(n=>n.id==='petugas');
+      if(petugas){ petugas.fsmState='PATROL'; }
+      showNotif('','⚠️ PETUGAS GOT TIBA!','Petugas kebersihan masuk ke dalam got! Hati-hati!');
+      document.getElementById('ab').classList.add('on');
+      setTimeout(()=>document.getElementById('ab').classList.remove('on'),5000);
+    }
     if(G.timerSec<=0) gameOver('Waktu habis! Petugas Got telah membersihkan seluruh got. ⏰');
     else updateHUD();
   },1000);
@@ -1065,8 +1088,11 @@ function loop(){
   TRAPS.forEach(tr=>drawTrap(ctx,tr.tx*TILE+TILE/2-G.camera.x,tr.ty*TILE+TILE/2-G.camera.y,G.tick));
   // Items
   G.items.forEach(it=>drawItem(ctx,it,G.tick));
-  // NPCs
-  G.npcs.forEach(npc=>drawNPC(ctx,npc,G.camera.x,G.camera.y,G.tick));
+  // NPCs (skip petugas if not spawned yet)
+  G.npcs.forEach(npc=>{
+    if(npc.id==='petugas'&&!G.petugasSpawned) return;
+    drawNPC(ctx,npc,G.camera.x,G.camera.y,G.tick);
+  });
   // Player
   const ppx=G.player.x-G.camera.x, ppy=G.player.y-G.camera.y;
   drawPlayer(ctx,ppx,ppy,G.player.dir,G.player.moving,G.tick);

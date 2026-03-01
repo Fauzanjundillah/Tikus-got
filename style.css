@@ -41,12 +41,11 @@ body.mobile #gc{height:calc(100% - 96px);}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
 #hmission{font-size:13px;color:var(--green-l);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px;flex-shrink:0;}
 #harea{font-size:13px;color:var(--gray);white-space:nowrap;flex-shrink:0;}
-/* MISSION PANEL */
-#mp{position:absolute;top:52px;left:10px;width:185px;background:rgba(5,5,5,.94);border:1.5px solid #1A3A1A;border-radius:8px;padding:8px 10px;z-index:15;}
-#mp h4{color:var(--gold);font-size:10px;letter-spacing:1px;margin-bottom:6px;padding-bottom:5px;border-bottom:1px solid #111;}
-.msp{display:flex;align-items:flex-start;gap:7px;padding:3px 0;color:#333;font-size:13px;line-height:1.3;}
-.msp.act{color:var(--green-l);}  .msp.dn{color:#2A3A2A;text-decoration:line-through;}
-.msi{font-size:11px;flex-shrink:0;margin-top:2px;}
+/* MISSION PANEL — compact, 1 misi aktif saja */
+#mp{position:absolute;top:52px;left:10px;max-width:185px;background:rgba(5,5,5,.93);border:1.5px solid #1A3A1A;border-radius:8px;padding:6px 10px;z-index:15;}
+#mp h4{color:var(--gold);font-size:9px;letter-spacing:1px;margin-bottom:4px;padding-bottom:3px;border-bottom:1px solid #151515;}
+.msp{display:flex;align-items:flex-start;gap:6px;color:var(--green-l);font-size:13px;line-height:1.35;}
+.msi{font-size:13px;flex-shrink:0;}
 /* HUD BOTTOM */
 #bh{position:absolute;bottom:0;left:0;right:0;height:44px;background:rgba(3,3,3,.97);border-top:2px solid #1A3A1A;display:flex;align-items:center;padding:0 10px;gap:6px;z-index:20;}
 body.mobile #bh{height:52px;}
