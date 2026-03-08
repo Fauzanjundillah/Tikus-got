@@ -95,7 +95,7 @@ const NPC_DEFS = [
   {
     id:'kiki', name:'Kiki', img:'assets/npc_kiki.png',
     tx:23, ty:5, fsmState:'WANDERING', wanderRange:2,
-    requiredStep: 1,
+    requiredStep: 2,
     dialogs:{
       WANDERING:{
         text:'Eh ada tikus lain! Kamu mau kabur juga? Ikuti aku!',
@@ -111,7 +111,7 @@ const NPC_DEFS = [
             text:'> Oke, aku cari Papan Kayu!',
             needStep:1,
             giveItem:'item_catatan', giveItemName:'Catatan Kiki',
-            advanceStep:2,
+            advanceStep:3,
             next:'DONE2'
           },
           {text:'Makasih infonya.', close:true}
@@ -126,7 +126,7 @@ const NPC_DEFS = [
   {
     id:'nyonya_siput', name:'Nyonya Siput', img:'assets/npc_nyonya_siput.png',
     tx:25, ty:19, fsmState:'IDLE', wanderRange:1,
-    requiredStep: 2,
+    requiredStep: 4,
     dialogs:{
       IDLE:{
         text:'Oh, ada tamu! Jarang ada yang mampir ke sini. Mau apa, sayang?',
@@ -151,7 +151,7 @@ const NPC_DEFS = [
             needStep:3,
             removeItem:'item_papan_kayu',
             giveItem:'item_kunci', giveItemName:'Kunci Lorong',
-            advanceStep:4,
+            advanceStep:5,
             next:'DONE3'
           },
           {text:'Belum dapat nih.', close:true}
