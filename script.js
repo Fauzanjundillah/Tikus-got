@@ -778,12 +778,14 @@ function collectItem(item){
   G.inventory.push(item.id);
   updateInvUI();
   showNotif(item.img,'Item Ditemukan! ✅',item.name);
-  // Auto advance mission step for item pickup
+
+  // Advance mission step LANGSUNG saat item diambil
   if(item.id==='item_makanan' && G.missionStep===0){
-    // just collected, now go give to pak koak — step stays 0
+    G.missionStep=1;           // misi ambil makanan selesai → sekarang: beri ke Pak Koak
+    updateMissionUI();
   }
-  if(item.id==='item_papan_kayu' && G.missionStep===2){
-    G.missionStep=3;
+  if(item.id==='item_papan_kayu' && G.missionStep===3){
+    G.missionStep=4;           // misi ambil papan selesai → sekarang: beri ke Nyonya Siput
     updateMissionUI();
   }
   updateHUD();
@@ -846,7 +848,7 @@ function handleChoice(npc, ch){
     G.inventory=G.inventory.filter(i=>i!==ch.removeItem);
     updateInvUI();
   }
-  // Advance mission step
+  // Advance mission step dari dialog NPC
   if(ch.advanceStep!==undefined){
     G.missionStep=ch.advanceStep;
     updateMissionUI(); updateHUD();

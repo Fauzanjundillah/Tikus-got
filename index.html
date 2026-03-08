@@ -8,111 +8,112 @@
 </head>
 <body>
 
-<!-- ══════════════════════════════════════════════════════
-     INTRO SCREEN
-══════════════════════════════════════════════════════ -->
+<!-- ══════════════════════════════════════
+     INTRO SCREEN — 3 TAHAP
+══════════════════════════════════════ -->
 <div class="screen active" id="introScreen">
   <div class="ibg"></div>
-  <div class="iwrap">
 
-    <!-- Logo -->
+  <!-- TAHAP 1: SPLASH -->
+  <div class="istage active" id="stage1">
     <div class="irat">🐭</div>
     <div class="ilogo">TIKUS DI GOT</div>
     <div class="itag">Top-Down Adventure Game</div>
-
-    <!-- Cerita -->
-    <div class="card">
-      <div class="ct">📜 CERITA</div>
+    <div class="istory">
       <p>
-        Si <span class="hl">Tikus</span> telah tinggal nyaman di jaringan got bawah Kota Mentari.
-        Suatu hari, sebuah pengumuman mengejutkan tersebar:
-        <span class="dng">Dinas Kebersihan Kota akan membersihkan got dalam 24 jam!</span>
-        <br><br>
-        Si Tikus harus <span class="hl">menjelajahi got, membantu para penghuni, dan kabur</span>
-        sebelum Petugas Got datang!
+        Si <span class="hl">Tikus</span> tinggal nyaman di got bawah Kota Mentari.<br><br>
+        Suatu hari: <span class="dng">Dinas Kebersihan akan membersihkan got dalam 8 menit!</span><br><br>
+        Jelajahi got, bantu para penghuni, dan <span class="hl">kabur sebelum Petugas datang!</span>
       </p>
     </div>
+    <button class="ibtn" onclick="goStage(2)">Lihat Misi ▶</button>
+  </div>
 
-    <!-- Misi -->
+  <!-- TAHAP 2: MISI + BAHAYA -->
+  <div class="istage" id="stage2">
+    <div class="ilogo" style="font-size:clamp(14px,3vw,22px);">📋 URUTAN MISI</div>
     <div class="card">
-      <div class="ct">🎯 URUTAN MISI</div>
       <div class="mslist">
         <div class="msitem"><div class="msnum">1</div>Cari <b>Makanan Basi</b> di Got Tengah</div>
         <div class="msitem"><div class="msnum">2</div>Berikan ke <b>Pak Koak</b> → Dapat <b>Peta Got</b></div>
-        <div class="msitem"><div class="msnum">3</div>Temui <b>Kiki</b> → Dapat info dan <b>Catatan</b></div>
+        <div class="msitem"><div class="msnum">3</div>Temui <b>Kiki</b> → Dapat <b>Catatan</b></div>
         <div class="msitem"><div class="msnum">4</div>Cari <b>Papan Kayu</b> di Got Utara</div>
         <div class="msitem"><div class="msnum">5</div>Berikan ke <b>Nyonya Siput</b> → Dapat <b>Kunci</b></div>
-        <div class="msitem"><div class="msnum">6</div>Gunakan kunci untuk <b>Kabur dari Got!</b></div>
+        <div class="msitem"><div class="msnum">6</div>Gunakan kunci → <b>Kabur dari Got!</b></div>
       </div>
     </div>
-
-    <!-- Bahaya -->
     <div class="card" style="border-color:#5A2020;">
       <div class="ct" style="color:#FF6644;">⚠️ BAHAYA</div>
       <div class="mslist">
         <div class="msitem" style="color:#AA6644;"><div class="msnum" style="background:#5A2020;">!</div>
-          <b>Petugas Got</b> masuk setelah <b>1 menit</b> — berpatroli & mengejar jika melihatmu!</div>
+          <b>Petugas Got</b> masuk setelah <b>1 menit</b> — bisa mengejar!</div>
         <div class="msitem" style="color:#AA6644;"><div class="msnum" style="background:#5A2020;">!</div>
-          <b>Perangkap Tikus</b> tersembunyi di lorong — injak = Game Over!</div>
+          <b>Perangkap</b> tersembunyi — injak = Game Over!</div>
         <div class="msitem" style="color:#AA6644;"><div class="msnum" style="background:#5A2020;">!</div>
-          Hanya <b>8 menit</b> sebelum pembersihan — harus kabur sebelum waktu habis!</div>
+          Hanya <b>8 menit</b> — kabur sebelum waktu habis!</div>
       </div>
+    </div>
+    <div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center;">
+      <button class="ibtn" style="background:#111;border-color:#333;font-size:15px;" onclick="goStage(1)">◀ Kembali</button>
+      <button class="ibtn" onclick="goStage(3)">Pilih Mode ▶</button>
+    </div>
+  </div>
+
+  <!-- TAHAP 3: PILIH MODE -->
+  <div class="istage" id="stage3">
+    <div class="ilogo" style="font-size:clamp(14px,3vw,22px);">🎮 PILIH MODE</div>
+
+    <div class="mrow">
+      <button class="mbtn" id="btnPC" onclick="selectMode('pc')">
+        <span class="mi">🖥️</span>
+        Mode PC
+        <span class="ms">WASD + Keyboard</span>
+      </button>
+      <button class="mbtn" id="btnHP" onclick="selectMode('mobile')">
+        <span class="mi">📱</span>
+        Mode HP
+        <span class="ms">D-Pad + Touchscreen</span>
+      </button>
     </div>
 
     <!-- Kontrol PC -->
-    <div class="card" id="ctrlPC">
-      <div class="ct">🖥️ KONTROL (PC)</div>
+    <div class="card" id="ctrlPC" style="display:none;">
+      <div class="ct">🖥️ KONTROL PC</div>
       <div class="cgrid">
         <div><span class="k">WASD / Arrow</span> — Gerak</div>
         <div><span class="k">E</span> — Interaksi / Ambil Item</div>
         <div><span class="k">ESC</span> — Pause / Tutup Dialog</div>
-        <div><span class="k">Dekati NPC</span> → tekan E untuk dialog</div>
+        <div><span class="k">Dekati NPC</span> → tekan E dialog</div>
       </div>
     </div>
 
     <!-- Kontrol HP -->
     <div class="card" id="ctrlHP" style="display:none;">
-      <div class="ct">📱 KONTROL (HP)</div>
+      <div class="ct">📱 KONTROL HP</div>
       <div class="cgrid">
         <div><span class="k">D-Pad</span> — Gerak karakter</div>
-        <div><span class="k">Tombol E</span> — Interaksi / Ambil Item</div>
+        <div><span class="k">Tombol ⚡</span> — Interaksi / Ambil Item</div>
         <div><span class="k">Tombol ⏸</span> — Pause</div>
-        <div><span class="k">Dekati NPC</span> → tap E untuk dialog</div>
+        <div><span class="k">Dekati NPC</span> → tap ⚡ dialog</div>
       </div>
     </div>
 
-    <!-- Pilih Mode -->
-    <div class="mlabel">PILIH MODE</div>
-    <div class="mrow">
-      <button class="mbtn" id="btnPC" onclick="selectMode('pc')">
-        <span class="mi">🖥️</span>
-        Mode PC
-        <span class="ms">Keyboard + Mouse</span>
-      </button>
-      <button class="mbtn" id="btnHP" onclick="selectMode('mobile')">
-        <span class="mi">📱</span>
-        Mode HP
-        <span class="ms">Touchscreen + D-Pad</span>
+    <div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center;">
+      <button class="ibtn" style="background:#111;border-color:#333;font-size:15px;" onclick="goStage(2)">◀ Kembali</button>
+      <button class="ibtn ibtn-start" id="startBtn" style="display:none;" onclick="startGame(selectedMode)">
+        🐭 MULAI BERMAIN!
       </button>
     </div>
-
-    <div id="startBtn" style="display:none;">
-      <button class="mbtn" style="min-width:200px;background:#1A4A2A;border-color:#4A9A50;font-size:22px;" onclick="startGame(selectedMode)">
-        <span class="mi">🐭</span>
-        MULAI BERMAIN!
-      </button>
-    </div>
-
   </div>
+
 </div>
 
-<!-- ══════════════════════════════════════════════════════
+<!-- ══════════════════════════════════════
      GAME SCREEN
-══════════════════════════════════════════════════════ -->
+══════════════════════════════════════ -->
 <div class="screen" id="gameScreen">
   <div id="gw">
 
-    <!-- HUD TOP -->
     <div id="hud">
       <div id="htitle">TIKUS DI GOT</div>
       <div id="htimer">Waktu: 08:00</div>
@@ -120,21 +121,15 @@
       <div id="harea">Got Tengah</div>
     </div>
 
-    <!-- CANVAS -->
     <canvas id="gc" width="900" height="514"></canvas>
 
-    <!-- MISSION PANEL -->
-    <div id="mp">
-      <h4>🎯 MISI</h4>
-    </div>
+    <div id="mp"><h4>🎯 MISI</h4></div>
 
-    <!-- MINIMAP -->
     <div id="mm">
       <div id="mml">PETA</div>
       <canvas id="mmc" width="130" height="130"></canvas>
     </div>
 
-    <!-- HUD BOTTOM -->
     <div id="bh">
       <div id="ilabel">INVENTORY</div>
       <div id="islots"></div>
@@ -145,7 +140,6 @@
       </div>
     </div>
 
-    <!-- DIALOG BOX -->
     <div id="dlg">
       <div id="dh">
         <img id="dav" src="" alt="NPC">
@@ -155,7 +149,6 @@
       <div id="dchoices"></div>
     </div>
 
-    <!-- NOTIFICATION -->
     <div id="notif">
       <img src="" alt="">
       <div>
@@ -164,19 +157,15 @@
       </div>
     </div>
 
-    <!-- OVERLAY (Pause/GameOver/Win) -->
     <div id="ov">
       <div id="ovt"></div>
       <div id="ovs"></div>
       <div id="ovb"></div>
     </div>
 
-    <!-- ALERT BORDER -->
     <div id="ab"></div>
 
-    <!-- MOBILE CONTROLS -->
     <div id="mctrl">
-      <!-- D-PAD -->
       <div id="dpad">
         <div class="dpb" id="dpu">▲</div>
         <div class="dpb" id="dpd">▼</div>
@@ -184,40 +173,32 @@
         <div class="dpb" id="dpr">▶</div>
         <div id="dpc"></div>
       </div>
-      <!-- ACTION BUTTONS -->
       <div id="abtns">
-        <button class="abtn" id="btn-e">
-          <span class="ai">⚡</span>
-          Aksi [E]
-        </button>
-        <button class="abtn" id="btn-esc">
-          <span class="ai">⏸</span>
-          Pause
-        </button>
+        <button class="abtn" id="btn-e"><span class="ai">⚡</span>Aksi [E]</button>
+        <button class="abtn" id="btn-esc"><span class="ai">⏸</span>Pause</button>
       </div>
     </div>
 
-  </div><!-- /gw -->
-</div><!-- /gameScreen -->
+  </div>
+</div>
 
 <script>
-// Mode selection logic (in HTML to work before script.js loads)
 let selectedMode = 'pc';
+
+function goStage(n) {
+  document.querySelectorAll('.istage').forEach(el => el.classList.remove('active'));
+  document.getElementById('stage' + n).classList.add('active');
+}
 
 function selectMode(mode) {
   selectedMode = mode;
-  // Highlight selected button
   document.getElementById('btnPC').style.borderColor = mode==='pc' ? '#FFD700' : '#4A7A30';
   document.getElementById('btnHP').style.borderColor = mode==='mobile' ? '#FFD700' : '#4A7A30';
   document.getElementById('btnPC').style.color = mode==='pc' ? '#FFD700' : '';
   document.getElementById('btnHP').style.color = mode==='mobile' ? '#FFD700' : '';
-  // Show relevant controls
   document.getElementById('ctrlPC').style.display = mode==='pc' ? 'block' : 'none';
   document.getElementById('ctrlHP').style.display = mode==='mobile' ? 'block' : 'none';
-  // Show start button
   document.getElementById('startBtn').style.display = 'block';
-  // Scroll to start button
-  document.getElementById('startBtn').scrollIntoView({behavior:'smooth'});
 }
 </script>
 <script src="script.js"></script>
